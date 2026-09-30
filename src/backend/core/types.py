@@ -132,6 +132,16 @@ class EmbeddingResult(BaseModel):
         return len(self.vectors[0]) if self.vectors else 0
 
 
+class GeneratedImage(BaseModel):
+    """One image produced by an image-generation deployment."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    b64_data: str
+    media_type: str = "image/png"
+    model: str = ""
+
+
 class Chunk(BaseModel):
     """One parsed text fragment ready for embedding + indexing.
 

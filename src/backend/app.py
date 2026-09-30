@@ -30,6 +30,7 @@ from backend.routers import (
     admin,
     conversation,
     export,
+    infographic,
     files,
     health,
     history,
@@ -330,6 +331,7 @@ def create_app() -> FastAPI:
     app.include_router(conversation.router)
     app.include_router(synthesize.router)
     app.include_router(export.router)
+    app.include_router(infographic.router)
     app.include_router(history.router)
     app.include_router(speech.router)
     app.include_router(admin.router)

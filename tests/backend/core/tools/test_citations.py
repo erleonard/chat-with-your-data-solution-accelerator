@@ -5,6 +5,7 @@ from collections.abc import Awaitable, Callable
 import pytest
 
 from backend.core.tools.citations import (
+    strip_doc_markers,
     build_citations,
     citations_from_annotations,
     doc_marker,
@@ -464,3 +465,10 @@ async def test_enrich_kb_citations_detects_key_from_url_when_source_id_absent() 
 
 async def test_enrich_kb_citations_empty_input_returns_empty() -> None:
     assert await enrich_kb_citations([], _doc_fetcher({})) == []
+
+
+def test_strip_doc_markers_removes_markers_and_collapses_spaces() -> None:
+    assert (
+        strip_doc_markers("Budget is $5M [doc1] [doc12].\nNext  line")
+        == "Budget is $5M .\nNext line"
+    )

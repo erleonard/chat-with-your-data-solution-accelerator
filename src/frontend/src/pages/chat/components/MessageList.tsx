@@ -38,7 +38,8 @@
  *     ref dedupes so identical SSE error frames or React Strict
  *     Mode double-invocation surface only one toast per failure.
  *   - finished assistant answers get Markdown / Word download buttons
- *     (`buildExportDocument` + `downloadMarkdown` / `downloadDocx`).
+ *     (`buildExportDocument` + `downloadMarkdown` / `downloadDocx`)
+ *     plus an "AI image" action (`InfographicImageAction`).
  * Both decorations are skipped when neither field applies.
  */
 import { useEffect, useRef } from "react";
@@ -62,6 +63,7 @@ import {
 } from "@/api/exportDocument";
 import { ChatActionType, useChat } from "@/pages/chat/ChatContext";
 import { TOASTER_ID } from "@/theme/FluentThemeBridge";
+import { InfographicImageAction } from "./InfographicImageAction";
 import { MarkdownContent } from "./MarkdownContent";
 import { parseAnswer } from "./parseAnswer";
 import { formatReasoning, superscriptReasoningCitations } from "./reasoningText";
@@ -249,6 +251,22 @@ export function MessageList() {
                       >
                         Word
                       </Button>
+                      <InfographicImageAction
+                        messageId={m.id}
+                        markdown={m.content}
+                        title={buildExportDocument(m.content, m.citations).title}
+                        onError={(err: unknown) => {
+                          dispatchToast(
+                            <Toast>
+                              <ToastTitle>Image generation failed</ToastTitle>
+                              <ToastBody>
+                                {err instanceof Error ? err.message : String(err)}
+                              </ToastBody>
+                            </Toast>,
+                            { intent: "error" },
+                          );
+                        }}
+                      />
                     </div>
                   )}
                   {m.streaming !== true && referencedCitations.length > 0 && (

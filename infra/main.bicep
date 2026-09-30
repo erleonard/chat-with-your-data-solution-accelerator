@@ -144,6 +144,23 @@ param embeddingModelDeploymentType string = 'Standard'
 @description('Optional. Token capacity for the embedding model.')
 param embeddingModelCapacity int = 100
 
+@description('Optional. gpt-image deployment for AI-generated infographics. Empty (default) disables the feature and deploys no image model.')
+param imageModelName string = ''
+
+@description('Optional. gpt-image model version.')
+param imageModelVersion string = '2025-04-15'
+
+@allowed([
+  'Standard'
+  'GlobalStandard'
+])
+@description('Optional. SKU for the image model deployment.')
+param imageModelDeploymentType string = 'GlobalStandard'
+
+@minValue(1)
+@description('Optional. Capacity for the image model deployment.')
+param imageModelCapacity int = 1
+
 @description('Optional. Azure OpenAI API version exposed via the OpenAI-compatible endpoint (used by the LangGraph orchestrator).')
 param azureOpenAiApiVersion string = '2025-01-01-preview'
 
@@ -257,6 +274,10 @@ module avmDeployment './avm/main.bicep' = if (isAvm) {
     embeddingModelVersion: embeddingModelVersion
     embeddingModelDeploymentType: embeddingModelDeploymentType
     embeddingModelCapacity: embeddingModelCapacity
+    imageModelName: imageModelName
+    imageModelVersion: imageModelVersion
+    imageModelDeploymentType: imageModelDeploymentType
+    imageModelCapacity: imageModelCapacity
     azureOpenAiApiVersion: azureOpenAiApiVersion
     azureAiAgentApiVersion: azureAiAgentApiVersion
     searchKnowledgeBaseName: searchKnowledgeBaseName
@@ -305,6 +326,10 @@ module bicepDeployment './bicep/main.bicep' = if (isBicep) {
     embeddingModelVersion: embeddingModelVersion
     embeddingModelDeploymentType: embeddingModelDeploymentType
     embeddingModelCapacity: embeddingModelCapacity
+    imageModelName: imageModelName
+    imageModelVersion: imageModelVersion
+    imageModelDeploymentType: imageModelDeploymentType
+    imageModelCapacity: imageModelCapacity
     azureOpenAiApiVersion: azureOpenAiApiVersion
     azureAiAgentApiVersion: azureAiAgentApiVersion
     searchKnowledgeBaseName: searchKnowledgeBaseName
@@ -381,6 +406,9 @@ output AZURE_OPENAI_REASONING_DEPLOYMENT string = isAvm ? avmDeployment!.outputs
 
 @description('Deployment name of the embedding model.')
 output AZURE_OPENAI_EMBEDDING_DEPLOYMENT string = isAvm ? avmDeployment!.outputs.AZURE_OPENAI_EMBEDDING_DEPLOYMENT : bicepDeployment!.outputs.AZURE_OPENAI_EMBEDDING_DEPLOYMENT
+
+@description('Deployment name of the optional gpt-image model (empty when disabled).')
+output AZURE_OPENAI_IMAGE_DEPLOYMENT string = imageModelName
 
 // --- Speech ---
 

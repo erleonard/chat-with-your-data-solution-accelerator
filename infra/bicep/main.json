@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.46.1.21595",
-      "templateHash": "6491163985160595286"
+      "templateHash": "16149590971717637057"
     }
   },
   "parameters": {
@@ -143,6 +143,39 @@
         "description": "Optional. Token capacity for the embedding model."
       }
     },
+    "imageModelName": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Optional. gpt-image deployment for AI-generated infographics. Empty (default) disables the feature and deploys no image model."
+      }
+    },
+    "imageModelVersion": {
+      "type": "string",
+      "defaultValue": "2025-04-15",
+      "metadata": {
+        "description": "Optional. gpt-image model version."
+      }
+    },
+    "imageModelDeploymentType": {
+      "type": "string",
+      "defaultValue": "GlobalStandard",
+      "allowedValues": [
+        "Standard",
+        "GlobalStandard"
+      ],
+      "metadata": {
+        "description": "Optional. SKU for the image model deployment."
+      }
+    },
+    "imageModelCapacity": {
+      "type": "int",
+      "defaultValue": 1,
+      "minValue": 1,
+      "metadata": {
+        "description": "Optional. Capacity for the image model deployment."
+      }
+    },
     "azureOpenAiApiVersion": {
       "type": "string",
       "defaultValue": "2025-01-01-preview",
@@ -250,7 +283,7 @@
     "allTags": "[union(createObject('azd-env-name', parameters('solutionName'), 'TemplateName', 'CWYD-v2', 'Type', 'Non-WAF', 'CreatedBy', parameters('createdBy'), 'DatabaseType', parameters('databaseType')), parameters('tags'))]",
     "isCosmos": "[equals(parameters('databaseType'), 'cosmosdb')]",
     "indexStoreValue": "[if(variables('isCosmos'), 'AzureSearch', 'pgvector')]",
-    "defaultOpenAiDeployments": [
+    "baseOpenAiDeployments": [
       {
         "name": "[parameters('gptModelName')]",
         "model": {
@@ -291,6 +324,8 @@
         "raiPolicyName": "Microsoft.DefaultV2"
       }
     ],
+    "imageOpenAiDeployments": "[if(empty(parameters('imageModelName')), createArray(), createArray(createObject('name', parameters('imageModelName'), 'model', createObject('format', 'OpenAI', 'name', parameters('imageModelName'), 'version', parameters('imageModelVersion')), 'sku', createObject('name', parameters('imageModelDeploymentType'), 'capacity', parameters('imageModelCapacity')), 'raiPolicyName', 'Microsoft.DefaultV2')))]",
+    "defaultOpenAiDeployments": "[concat(variables('baseOpenAiDeployments'), variables('imageOpenAiDeployments'))]",
     "useExistingAIProject": "[not(empty(parameters('existingFoundryProjectResourceId')))]",
     "aiFoundrySubscriptionId": "[if(variables('useExistingAIProject'), split(parameters('existingFoundryProjectResourceId'), '/')[2], subscription().subscriptionId)]",
     "aiFoundryResourceGroupName": "[if(variables('useExistingAIProject'), split(parameters('existingFoundryProjectResourceId'), '/')[4], resourceGroup().name)]",
@@ -3346,7 +3381,7 @@
                   "cpu": "[json('0.5')]",
                   "memory": "1.0Gi"
                 },
-                "env": "[concat(createArray(createObject('name', 'AZURE_CLIENT_ID', 'value', reference('userAssignedIdentity').outputs.clientId.value), createObject('name', 'AZURE_UAMI_CLIENT_ID', 'value', reference('userAssignedIdentity').outputs.clientId.value), createObject('name', 'AZURE_TENANT_ID', 'value', subscription().tenantId), createObject('name', 'AZURE_ENVIRONMENT', 'value', 'production'), createObject('name', 'AZURE_AI_PROJECT_ENDPOINT', 'value', if(variables('useExistingAIProject'), reference('existingAIProject').outputs.projectEndpoint.value, reference('aiProject').outputs.projectEndpoint.value)), createObject('name', 'AZURE_OPENAI_ENDPOINT', 'value', if(variables('useExistingAIProject'), reference('existingAIProject').outputs.endpoint.value, reference('aiProject').outputs.endpoint.value)), createObject('name', 'AZURE_AI_SERVICES_ENDPOINT', 'value', if(variables('useExistingAIProject'), reference('existingAIProject').outputs.endpoint.value, reference('aiProject').outputs.endpoint.value)), createObject('name', 'AZURE_OPENAI_API_VERSION', 'value', parameters('azureOpenAiApiVersion')), createObject('name', 'AZURE_AI_AGENT_API_VERSION', 'value', parameters('azureAiAgentApiVersion')), createObject('name', 'AZURE_OPENAI_GPT_DEPLOYMENT', 'value', parameters('gptModelName')), createObject('name', 'AZURE_OPENAI_EMBEDDING_DEPLOYMENT', 'value', parameters('embeddingModelName')), createObject('name', 'AZURE_DB_TYPE', 'value', parameters('databaseType')), createObject('name', 'AZURE_INDEX_STORE', 'value', variables('indexStoreValue')), createObject('name', 'AZURE_COSMOS_ENDPOINT', 'value', if(variables('isCosmos'), reference('cosmosDb').outputs.endpoint.value, '')), createObject('name', 'AZURE_AI_SEARCH_ENDPOINT', 'value', if(variables('isCosmos'), reference('aiSearch').outputs.endpoint.value, '')), createObject('name', 'AZURE_AI_SEARCH_INDEX', 'value', if(variables('isCosmos'), parameters('searchIndexName'), '')), createObject('name', 'AZURE_AI_SEARCH_KNOWLEDGE_BASE_NAME', 'value', parameters('searchKnowledgeBaseName')), createObject('name', 'AZURE_AI_SEARCH_KNOWLEDGE_SOURCE_NAME', 'value', parameters('searchKnowledgeSourceName')), createObject('name', 'AZURE_AI_SEARCH_KNOWLEDGE_BASE_API_VERSION', 'value', parameters('searchKnowledgeBaseApiVersion')), createObject('name', 'AZURE_AI_SEARCH_CONNECTION_NAME', 'value', if(variables('isCosmos'), reference('aiProjectSearchConnection').outputs.connectionName.value, '')), createObject('name', 'AZURE_POSTGRES_ENDPOINT', 'value', if(equals(parameters('databaseType'), 'postgresql'), format('postgresql://{0}:5432/cwyd?sslmode=require', reference('postgresServer').outputs.serverFqdn.value), '')), createObject('name', 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME', 'value', if(not(variables('isCosmos')), reference('userAssignedIdentity').outputs.name.value, '')), createObject('name', 'AZURE_SPEECH_SERVICE_NAME', 'value', reference('speechService').outputs.name.value), createObject('name', 'AZURE_SPEECH_SERVICE_REGION', 'value', parameters('azureAiServiceLocation')), createObject('name', 'AZURE_SPEECH_ACCOUNT_RESOURCE_ID', 'value', reference('speechService').outputs.resourceId.value), createObject('name', 'AZURE_CONTENT_SAFETY_ENABLED', 'value', 'true'), createObject('name', 'AZURE_CONTENT_SAFETY_ENDPOINT', 'value', reference('contentSafety').outputs.endpoint.value), createObject('name', 'CWYD_ORCHESTRATOR_NAME', 'value', if(equals(parameters('databaseType'), 'postgresql'), 'langgraph', 'agent_framework')), createObject('name', 'AZURE_STORAGE_ACCOUNT_NAME', 'value', reference('storageAccount').outputs.name.value), createObject('name', 'AZURE_DOCUMENTS_CONTAINER', 'value', variables('documentsContainerName')), createObject('name', 'AZURE_DOC_PROCESSING_QUEUE', 'value', variables('docProcessingQueueName')), createObject('name', 'AZURE_INGESTION_TRIGGER', 'value', parameters('ingestionTrigger'))), if(parameters('enableMonitoring'), createArray(createObject('name', 'APPLICATIONINSIGHTS_CONNECTION_STRING', 'value', if(parameters('enableMonitoring'), reference('applicationInsights').outputs.connectionString.value, ''))), createArray()))]"
+                "env": "[concat(createArray(createObject('name', 'AZURE_CLIENT_ID', 'value', reference('userAssignedIdentity').outputs.clientId.value), createObject('name', 'AZURE_UAMI_CLIENT_ID', 'value', reference('userAssignedIdentity').outputs.clientId.value), createObject('name', 'AZURE_TENANT_ID', 'value', subscription().tenantId), createObject('name', 'AZURE_ENVIRONMENT', 'value', 'production'), createObject('name', 'AZURE_AI_PROJECT_ENDPOINT', 'value', if(variables('useExistingAIProject'), reference('existingAIProject').outputs.projectEndpoint.value, reference('aiProject').outputs.projectEndpoint.value)), createObject('name', 'AZURE_OPENAI_ENDPOINT', 'value', if(variables('useExistingAIProject'), reference('existingAIProject').outputs.endpoint.value, reference('aiProject').outputs.endpoint.value)), createObject('name', 'AZURE_AI_SERVICES_ENDPOINT', 'value', if(variables('useExistingAIProject'), reference('existingAIProject').outputs.endpoint.value, reference('aiProject').outputs.endpoint.value)), createObject('name', 'AZURE_OPENAI_API_VERSION', 'value', parameters('azureOpenAiApiVersion')), createObject('name', 'AZURE_AI_AGENT_API_VERSION', 'value', parameters('azureAiAgentApiVersion')), createObject('name', 'AZURE_OPENAI_GPT_DEPLOYMENT', 'value', parameters('gptModelName')), createObject('name', 'AZURE_OPENAI_EMBEDDING_DEPLOYMENT', 'value', parameters('embeddingModelName')), createObject('name', 'AZURE_OPENAI_IMAGE_DEPLOYMENT', 'value', parameters('imageModelName')), createObject('name', 'AZURE_DB_TYPE', 'value', parameters('databaseType')), createObject('name', 'AZURE_INDEX_STORE', 'value', variables('indexStoreValue')), createObject('name', 'AZURE_COSMOS_ENDPOINT', 'value', if(variables('isCosmos'), reference('cosmosDb').outputs.endpoint.value, '')), createObject('name', 'AZURE_AI_SEARCH_ENDPOINT', 'value', if(variables('isCosmos'), reference('aiSearch').outputs.endpoint.value, '')), createObject('name', 'AZURE_AI_SEARCH_INDEX', 'value', if(variables('isCosmos'), parameters('searchIndexName'), '')), createObject('name', 'AZURE_AI_SEARCH_KNOWLEDGE_BASE_NAME', 'value', parameters('searchKnowledgeBaseName')), createObject('name', 'AZURE_AI_SEARCH_KNOWLEDGE_SOURCE_NAME', 'value', parameters('searchKnowledgeSourceName')), createObject('name', 'AZURE_AI_SEARCH_KNOWLEDGE_BASE_API_VERSION', 'value', parameters('searchKnowledgeBaseApiVersion')), createObject('name', 'AZURE_AI_SEARCH_CONNECTION_NAME', 'value', if(variables('isCosmos'), reference('aiProjectSearchConnection').outputs.connectionName.value, '')), createObject('name', 'AZURE_POSTGRES_ENDPOINT', 'value', if(equals(parameters('databaseType'), 'postgresql'), format('postgresql://{0}:5432/cwyd?sslmode=require', reference('postgresServer').outputs.serverFqdn.value), '')), createObject('name', 'AZURE_POSTGRES_ADMIN_PRINCIPAL_NAME', 'value', if(not(variables('isCosmos')), reference('userAssignedIdentity').outputs.name.value, '')), createObject('name', 'AZURE_SPEECH_SERVICE_NAME', 'value', reference('speechService').outputs.name.value), createObject('name', 'AZURE_SPEECH_SERVICE_REGION', 'value', parameters('azureAiServiceLocation')), createObject('name', 'AZURE_SPEECH_ACCOUNT_RESOURCE_ID', 'value', reference('speechService').outputs.resourceId.value), createObject('name', 'AZURE_CONTENT_SAFETY_ENABLED', 'value', 'true'), createObject('name', 'AZURE_CONTENT_SAFETY_ENDPOINT', 'value', reference('contentSafety').outputs.endpoint.value), createObject('name', 'CWYD_ORCHESTRATOR_NAME', 'value', if(equals(parameters('databaseType'), 'postgresql'), 'langgraph', 'agent_framework')), createObject('name', 'AZURE_STORAGE_ACCOUNT_NAME', 'value', reference('storageAccount').outputs.name.value), createObject('name', 'AZURE_DOCUMENTS_CONTAINER', 'value', variables('documentsContainerName')), createObject('name', 'AZURE_DOC_PROCESSING_QUEUE', 'value', variables('docProcessingQueueName')), createObject('name', 'AZURE_INGESTION_TRIGGER', 'value', parameters('ingestionTrigger'))), if(parameters('enableMonitoring'), createArray(createObject('name', 'APPLICATIONINSIGHTS_CONNECTION_STRING', 'value', if(parameters('enableMonitoring'), reference('applicationInsights').outputs.connectionString.value, ''))), createArray()))]"
               }
             ]
           }
@@ -4948,6 +4983,13 @@
         "description": "Embedding model deployment name."
       },
       "value": "[parameters('embeddingModelName')]"
+    },
+    "AZURE_OPENAI_IMAGE_DEPLOYMENT": {
+      "type": "string",
+      "metadata": {
+        "description": "Deployment name of the optional gpt-image model (empty when disabled)."
+      },
+      "value": "[parameters('imageModelName')]"
     },
     "AZURE_SPEECH_SERVICE_NAME": {
       "type": "string",

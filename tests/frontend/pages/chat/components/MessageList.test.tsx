@@ -1015,9 +1015,15 @@ describe("MessageList auto scroll-to-bottom", () => {
       );
     });
 
+    it("offers an AI image action on finished answers", () => {
+      seed(cited);
+      expect(screen.getByTestId("answer-image-9")).toBeTruthy();
+    });
+
     it("hides export actions while streaming and on user messages", () => {
       seed({ ...cited, id: "10", streaming: true });
       expect(screen.queryByTestId("answer-export-10")).toBeNull();
+      expect(screen.queryByTestId("answer-image-10")).toBeNull();
       expect(screen.queryByTestId("answer-export-1")).toBeNull();
     });
   });

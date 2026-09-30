@@ -16,11 +16,12 @@ from typing import AsyncIterator, Sequence
 
 from azure.core.credentials_async import AsyncTokenCredential
 
-from backend.core.settings import AppSettings
+from backend.core.settings import AppSettings, ImageSize
 from backend.core.types import (
     ChatChunk,
     ChatMessage,
     EmbeddingResult,
+    GeneratedImage,
     OrchestratorChannel,
     OrchestratorEvent,
 )
@@ -153,6 +154,23 @@ class BaseLLMProvider(ABC):
         name before checking.
         """
         return False
+
+    async def generate_image(
+        self,
+        prompt: str,
+        *,
+        deployment: str | None = None,
+        size: ImageSize = ImageSize.PORTRAIT,
+    ) -> GeneratedImage:
+        """Generate one image from ``prompt``.
+
+        Concrete on the ABC so providers without an image surface need
+        no stub; they raise ``NotImplementedError`` and callers treat
+        the feature as unavailable.
+        """
+        raise NotImplementedError(
+            f"{type(self).__name__} does not support image generation."
+        )
 
     async def aclose(self) -> None:
         """Release any owned SDK clients. Default implementation is a no-op."""

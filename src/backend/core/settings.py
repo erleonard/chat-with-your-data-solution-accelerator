@@ -98,6 +98,14 @@ class OrchestratorName(StrEnum):
     AGENT_FRAMEWORK = "agent_framework"
 
 
+class ImageSize(StrEnum):
+    """Output dimensions accepted by the gpt-image deployment."""
+
+    SQUARE = "1024x1024"
+    PORTRAIT = "1024x1536"
+    LANDSCAPE = "1536x1024"
+
+
 class IngestionTrigger(StrEnum):
     """How a written source blob gets picked up for indexing.
 
@@ -170,6 +178,10 @@ class OpenAISettings(BaseSettings):
     # text folded into one map call.
     synthesis_max_tokens: int = 4000
     synthesis_batch_chars: int = 24000
+    # Optional gpt-image deployment for AI-generated infographics; empty
+    # disables the feature.
+    image_deployment: str = ""
+    image_size: ImageSize = ImageSize.PORTRAIT
 
 
 class DatabaseSettings(BaseSettings):

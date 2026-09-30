@@ -246,6 +246,17 @@ def strip_kb_markers(text: str) -> str:
     return re.sub(r"[ \t]{2,}", " ", stripped)
 
 
+def strip_doc_markers(text: str) -> str:
+    """Remove ``[docN]`` citation markers from free text.
+
+    Used where an answer is re-purposed as input that cannot carry
+    citations (for example an image-generation brief). Whitespace runs
+    left behind are collapsed; newlines are preserved.
+    """
+    stripped = _DOC_MARKER_RE.sub("", text)
+    return re.sub(r"[ \t]{2,}", " ", stripped)
+
+
 # Native Foundry IQ Knowledge Base source scheme. The agent_framework KB
 # annotation keys a citation by ``mcp://searchindex/<key>``, where ``<key>`` is
 # the Azure AI Search document id. Stripping the scheme yields the bare key a

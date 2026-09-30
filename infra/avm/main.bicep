@@ -82,6 +82,23 @@ param embeddingModelDeploymentType string = 'Standard'
 @description('Optional. Token capacity for the embedding model.')
 param embeddingModelCapacity int = 100
 
+@description('Optional. gpt-image deployment for AI-generated infographics. Empty (default) disables the feature and deploys no image model.')
+param imageModelName string = ''
+
+@description('Optional. gpt-image model version.')
+param imageModelVersion string = '2025-04-15'
+
+@allowed([
+  'Standard'
+  'GlobalStandard'
+])
+@description('Optional. SKU for the image model deployment.')
+param imageModelDeploymentType string = 'GlobalStandard'
+
+@minValue(1)
+@description('Optional. Capacity for the image model deployment.')
+param imageModelCapacity int = 1
+
 @description('Optional. Azure OpenAI API version exposed via the OpenAI-compatible endpoint (used by the LangGraph orchestrator).')
 param azureOpenAiApiVersion string = '2025-01-01-preview'
 
@@ -248,7 +265,7 @@ var dnsZoneIndex = {
   containerRegistry: 8
 }
 
-var aiModelDeployments = [
+var baseModelDeployments = [
   {
     name: gptModelName
     model: {
@@ -289,6 +306,24 @@ var aiModelDeployments = [
     raiPolicyName: 'Microsoft.DefaultV2'
   }
 ]
+
+var imageModelDeployments = empty(imageModelName) ? [] : [
+  {
+    name: imageModelName
+    model: {
+      format: 'OpenAI'
+      name: imageModelName
+      version: imageModelVersion
+    }
+    sku: {
+      name: imageModelDeploymentType
+      capacity: imageModelCapacity
+    }
+    raiPolicyName: 'Microsoft.DefaultV2'
+  }
+]
+
+var aiModelDeployments = concat(baseModelDeployments, imageModelDeployments)
 
 // ===================== //
 // Resources             //
@@ -1107,6 +1142,7 @@ module backendContainerApp './modules/compute/container-app.bicep' = {
             { name: 'AZURE_AI_AGENT_API_VERSION', value: azureAiAgentApiVersion }
             { name: 'AZURE_OPENAI_GPT_DEPLOYMENT', value: gptModelName }
             { name: 'AZURE_OPENAI_EMBEDDING_DEPLOYMENT', value: embeddingModelName }
+            { name: 'AZURE_OPENAI_IMAGE_DEPLOYMENT', value: imageModelName }
             { name: 'AZURE_DB_TYPE', value: databaseType }
             { name: 'AZURE_INDEX_STORE', value: indexStoreValue }
             { name: 'AZURE_COSMOS_ENDPOINT', value: isCosmos ? cosmosDb!.outputs.endpoint : '' }
@@ -1510,6 +1546,9 @@ output AZURE_OPENAI_REASONING_DEPLOYMENT string = reasoningModelName
 
 @description('Deployment name of the embedding model used by the indexing pipeline.')
 output AZURE_OPENAI_EMBEDDING_DEPLOYMENT string = embeddingModelName
+
+@description('Deployment name of the optional gpt-image model (empty when disabled).')
+output AZURE_OPENAI_IMAGE_DEPLOYMENT string = imageModelName
 
 // --- Speech (S1 / SPEECH-MVP) ---
 
