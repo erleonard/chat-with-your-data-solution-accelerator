@@ -17,7 +17,7 @@
   min-height: 0;
   min-width: 0;
   overflow: hidden;
-  background: var(--colorNeutralBackground3);
+  background: var(--cwyd-page-background);
 }
 
 .shell[data-history-open="true"] {
@@ -80,14 +80,49 @@
   flex: 0 0 auto;
   display: flex;
   justify-content: center;
-  border-top: 1px solid var(--colorNeutralStroke2);
-  background: var(--colorNeutralBackground1);
+  background: var(--cwyd-page-background);
 }
 
 .composerColumn {
   composes: centeredColumn;
   padding: var(--spacingVerticalM) var(--spacingHorizontalL)
     var(--spacingVerticalL);
+}
+
+/* Empty conversation: the hero headline sits above a wide rounded
+   winter-landscape band with the pill composer floating over it. */
+.shell[data-empty="true"] .main {
+  justify-content: center;
+  overflow-y: auto;
+}
+
+.shell[data-empty="true"] .scroll {
+  flex: 0 0 auto;
+  overflow: visible;
+}
+
+.shell[data-empty="true"] .composer {
+  padding: var(--spacingVerticalXXL) var(--spacingHorizontalXXL)
+    var(--spacingVerticalXXXL);
+}
+
+.shell[data-empty="true"] .composerColumn {
+  max-width: 1200px;
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--spacingVerticalS);
+  padding: var(--spacingVerticalXXL) max(24px, 10%);
+  border-radius: 28px;
+  background:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 280' preserveAspectRatio='xMidYMax slice'><g fill='%231f3b36' opacity='0.55'><path d='M60 210l18-50 18 50z'/><path d='M85 215l24-70 24 70z'/><path d='M1030 205l20-58 20 58z'/><path d='M1060 212l26-78 26 78z'/><path d='M1100 210l18-48 18 48z'/></g><path fill='%23ffffff' d='M0 225c180-40 360-45 560-15s420 25 640-20v90H0z'/><path fill='%23eaf0f6' d='M0 250c220-25 470-30 700-5s360 15 500-5v40H0z'/></svg>")
+      center bottom / cover no-repeat,
+    linear-gradient(180deg, #9fb9d6 0%, #cddbea 55%, #eef3f8 100%);
+}
+
+.shell[data-empty="true"] .composerColumn > * {
+  width: 100%;
 }
 
 .srOnly {

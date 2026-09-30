@@ -89,6 +89,20 @@ describe("MessageList", () => {
     expect(screen.queryByTestId("message-list")).toBeNull();
   });
 
+  it("greets with the Hello, Canada hero headline and subtitle", () => {
+    render(
+      <ChatProvider>
+        <MessageList />
+      </ChatProvider>,
+    );
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Hello, Canada" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Whatever you need from your documents, start here."),
+    ).toBeInTheDocument();
+  });
+
   it("renders one <li> per message in dispatch order", () => {
     render(
       <ChatProvider>

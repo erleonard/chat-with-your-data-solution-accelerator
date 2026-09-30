@@ -1,22 +1,16 @@
-/* Header CSS Module. Mirrors the reference architecture's
-   `commonComponents/components/Header/Header.css`:
-     - 64px tall, padded 16px
-     - background: --colorNeutralBackgroundAlpha (translucent surface)
-     - bottom border: --colorNeutralStroke2
-     - flex row, brand on the left + tools on the right
-
-   No raw colors -- all values use Fluent v9 design tokens injected by
-   <FluentProvider>, so light/dark theme flips for free. */
+/* Header CSS Module: borderless bar on the warm page background with
+   the flag + serif wordmark on the left and a navy pill of tools on the
+   right. Colors come from Fluent v9 tokens and the --cwyd-* brand
+   palette in theme/tokens.css, so light/dark theme flips for free. */
 
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  height: 56px;
-  padding: 0 16px;
-  background: var(--colorNeutralBackgroundAlpha);
-  border-bottom: 1px solid var(--colorNeutralStroke2);
+  height: 72px;
+  padding: 0 32px;
+  background: var(--cwyd-page-background);
   flex-shrink: 0;
 }
 
@@ -34,7 +28,12 @@
   border: none;
   background: none;
   cursor: pointer;
-  border-radius: var(--borderRadiusMedium);
+  border-radius: 2px;
+}
+
+.flag {
+  display: block;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 8%);
 }
 
 .brandButton:focus-visible {
@@ -51,8 +50,10 @@
 
 .title {
   margin: 0;
-  font-size: var(--fontSizeBase400);
+  font-family: var(--cwyd-font-display);
+  font-size: 22px;
   font-weight: var(--fontWeightSemibold);
+  letter-spacing: -0.01em;
   color: var(--colorNeutralForeground1);
   white-space: nowrap;
   overflow: hidden;
@@ -77,5 +78,31 @@
 .tools {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--cwyd-accent);
+}
+
+.tools :global(.fui-ToolbarButton),
+.tools :global(.fui-ToggleButton),
+.tools :global(.fui-Button) {
+  color: var(--cwyd-accent-foreground);
+  border-radius: 999px;
+}
+
+.tools :global(.fui-ToolbarButton):hover,
+.tools :global(.fui-ToggleButton):hover,
+.tools :global(.fui-Button):hover {
+  color: var(--cwyd-accent-foreground);
+  background: var(--cwyd-accent-hover);
+}
+
+.tools :global(.fui-Button[aria-pressed="true"]) {
+  background: var(--cwyd-accent-hover);
+}
+
+.tools :global(.fui-Button) :global(.fui-Button__icon),
+.tools :global(.fui-Button):hover :global(.fui-Button__icon) {
+  color: var(--cwyd-accent-foreground);
 }

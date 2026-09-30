@@ -41,3 +41,29 @@ body {
     "Helvetica Neue", Arial, sans-serif;
       overflow-y: hidden;
 }
+
+/*
+ * Brand palette for the civic "Hello, Canada" look: warm off-white
+ * page, deep navy accents, and a serif display face for the wordmark
+ * and hero headline. Dark mode swaps to a navy page with a lighter
+ * accent so contrast holds.
+ */
+:root {
+  --cwyd-page-background: #f7f5f0;
+  --cwyd-accent: #0b2265;
+  --cwyd-accent-hover: #16327f;
+  --cwyd-accent-foreground: #ffffff;
+  --cwyd-input-border: #1b1b1f;
+  --cwyd-muted-foreground: #5c5c66;
+  --cwyd-font-display: "Iowan Old Style", "Palatino Linotype", Palatino,
+    Georgia, "Times New Roman", serif;
+}
+
+:root[data-theme="dark"] {
+  --cwyd-page-background: #10131c;
+  --cwyd-accent: #8fb0ff;
+  --cwyd-accent-hover: #a9c2ff;
+  --cwyd-accent-foreground: #0b1433;
+  --cwyd-input-border: #c8cbd6;
+  --cwyd-muted-foreground: #a6a9b6;
+}

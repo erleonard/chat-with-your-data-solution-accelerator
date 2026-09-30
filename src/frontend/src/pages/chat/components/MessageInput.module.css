@@ -8,16 +8,21 @@
   display: flex;
   align-items: center;
   gap: var(--spacingHorizontalS);
-  padding: var(--spacingVerticalXS) var(--spacingHorizontalS);
+  min-height: 64px;
+  padding: var(--spacingVerticalS) var(--spacingHorizontalS)
+    var(--spacingVerticalS) var(--spacingHorizontalL);
   background: var(--colorNeutralBackground1);
-  border: 1px solid var(--colorNeutralStroke2);
-  border-radius: var(--borderRadiusXLarge);
+  border: 1.5px solid var(--cwyd-input-border);
+  border-radius: 999px;
+  box-shadow: 0 6px 24px rgb(11 34 101 / 12%);
   transition: border-color 120ms ease, box-shadow 120ms ease;
 }
 
 .form:focus-within {
-  border-color: var(--colorCompoundBrandStroke);
-  box-shadow: 0 0 0 1px var(--colorCompoundBrandStroke);
+  border-color: var(--cwyd-accent);
+  box-shadow:
+    0 0 0 2px var(--cwyd-accent),
+    0 6px 24px rgb(11 34 101 / 12%);
 }
 
 .label {
@@ -37,6 +42,7 @@
   min-width: 0;
   padding: var(--spacingVerticalS) var(--spacingHorizontalM);
   font: inherit;
+  font-size: var(--fontSizeBase400);
   color: var(--colorNeutralForeground1);
   background: transparent;
   border: 0;
@@ -57,4 +63,20 @@
 .send,
 .mic {
   flex: 0 0 auto;
+}
+
+.form .send {
+  min-width: 44px;
+  width: 44px;
+  height: 44px;
+  color: var(--cwyd-accent-foreground);
+  background: var(--cwyd-accent);
+  border-color: var(--cwyd-accent);
+}
+
+.form .send:hover:not(:disabled),
+.form .send:active:not(:disabled) {
+  color: var(--cwyd-accent-foreground);
+  background: var(--cwyd-accent-hover);
+  border-color: var(--cwyd-accent-hover);
 }

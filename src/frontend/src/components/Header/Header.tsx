@@ -1,22 +1,20 @@
 /**
- * Coral Header. Mirrors the reference architecture's
- * `commonComponents/components/Header/Header.tsx`:
- *   - Left brand: a clickable <Avatar shape="square" color="neutral">
- *     wrapping the multi-agent brand mark that navigates back to the
- *     home / chat view, followed by a "<title> | <subtitle>" label row.
- *   - Right tools: <HeaderTools> -- Fluent <Toolbar> with new-chat, a
- *     gated admin entry, history toggle, theme toggle. The admin pages
- *     are reached solely through that gated admin entry, so a non-admin
- *     session never sees a dead-end link.
+ * App header:
+ *   - Left brand: a clickable home button holding the Canadian flag and
+ *     the serif wordmark (the page title), optionally followed by a
+ *     "| <subtitle>" label.
+ *   - Right tools: <HeaderTools> -- Fluent <Toolbar> rendered as a navy
+ *     pill with new-chat, a gated admin entry, history toggle, theme
+ *     toggle. The admin pages are reached solely through that gated
+ *     admin entry, so a non-admin session never sees a dead-end link.
  *
  * The accessible name "app-header" testid is preserved verbatim.
  */
-import { Avatar } from "@fluentui/react-components";
 import { type JSX } from "react";
 import type { UserInfo } from "@/models/auth";
 import type { Section } from "@/models/sections";
 import { HeaderTools } from "./HeaderTools";
-import { MultiAgentLogo } from "./MultiAgentLogo";
+import { CanadaFlag } from "./CanadaFlag";
 import styles from "./Header.module.css";
 
 export type AppView = Section;
@@ -33,7 +31,7 @@ export interface HeaderProps {
   userInfo?: UserInfo | null;
 }
 
-const DEFAULT_SUBTITLE = "Solution Accelerator";
+const DEFAULT_SUBTITLE = "";
 
 export function Header({
   title,
@@ -57,12 +55,7 @@ export function Header({
           title="Home"
           data-testid="header-home"
         >
-          <Avatar
-            shape="square"
-            color="neutral"
-            icon={<MultiAgentLogo size={20} />}
-            size={28}
-          />
+          <CanadaFlag height={18} className={styles.flag ?? ""} />
         </button>
         <div className={styles.titleStack}>
           <h1 className={styles.title}>{title}</h1>

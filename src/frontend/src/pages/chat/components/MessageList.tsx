@@ -53,7 +53,6 @@ import {
 import {
   ArrowDownload16Regular,
   Bot20Regular,
-  Chat48Regular,
   Person20Regular,
 } from "@fluentui/react-icons";
 import {
@@ -113,13 +112,10 @@ export function MessageList() {
 
   if (state.messages.length === 0) {
     return (
-      <div className={styles.empty}>
-        <Chat48Regular
-          aria-hidden="true"
-          className={styles.emptyIcon ?? ""}
-        />
-        <p data-testid="message-list-empty" className={styles.emptyText}>
-          Start a conversation
+      <div className={styles.empty} data-testid="message-list-empty">
+        <h2 className={styles.emptyTitle}>Hello, Canada</h2>
+        <p className={styles.emptyText}>
+          Whatever you need from your documents, start here.
         </p>
       </div>
     );
