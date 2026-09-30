@@ -41,10 +41,11 @@ The pipeline uses storage queues between stages. If a stage fails, the message i
 
 ## Supported content
 
-For the file formats you can ingest, see [Supported file types](supported_file_types.md). To add content, see [Admin and configuration](admin.md).
+For the file formats you can ingest, see [Supported file types](supported_file_types.md). To add content, see [Admin and configuration](admin.md). Each upload is capped at `AZURE_UPLOAD_MAX_BYTES` (200 MiB by default). To read whole documents rather than the top-matching passages, see [Document synthesis, export, and infographics](synthesis_and_infographics.md).
 
 ## Related documentation
 
+* [Document synthesis, export, and infographics](synthesis_and_infographics.md)
 * [Architecture overview](architecture.md)
 * [Admin and configuration](admin.md)
 * [Supported file types](supported_file_types.md)
