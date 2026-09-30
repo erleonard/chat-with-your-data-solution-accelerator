@@ -10,10 +10,9 @@ import pytest
 from azure.core.exceptions import AzureError
 
 import backend.services.ingestion as ingestion_module
-from backend.core.settings import IngestionTrigger
+from backend.core.settings import IngestionTrigger, StorageSettings
 from backend.models.admin import IngestUrlRequest, UploadResponse
 from backend.services.ingestion import (
-    MAX_UPLOAD_SIZE_BYTES,
     UploadRejected,
     _blob_name_for_url,
     ingest_url,
@@ -397,12 +396,14 @@ def _upload_settings(
     documents_container: str = "docs",
     doc_processing_queue: str = "doc-processing",
     services_endpoint: str = "https://ai.example.com/",
+    upload_max_bytes: int = 200 * 1024 * 1024,
 ) -> Any:
     """Settings stub shaped for ``validate_upload`` (storage + foundry)."""
     return NS(
         storage=NS(
             documents_container=documents_container,
             doc_processing_queue=doc_processing_queue,
+            upload_max_bytes=upload_max_bytes,
         ),
         foundry=NS(services_endpoint=services_endpoint),
     )
@@ -465,13 +466,20 @@ def test_validate_upload_rejects_di_file_when_ai_services_missing(
 def test_validate_upload_rejects_oversized_content() -> None:
     with pytest.raises(UploadRejected) as exc:
         validate_upload(
-            "big.txt", MAX_UPLOAD_SIZE_BYTES + 1, settings=_upload_settings()
+            "big.txt", 101, settings=_upload_settings(upload_max_bytes=100)
         )
     assert exc.value.status_code == 413
     assert isinstance(exc.value.detail, dict)
-    assert exc.value.detail["max_byte_count"] == MAX_UPLOAD_SIZE_BYTES
+    assert exc.value.detail["max_byte_count"] == 100
 
 
 def test_validate_upload_accepts_content_at_the_limit() -> None:
     # Exactly the cap is allowed; only strictly-over is rejected.
-    validate_upload("big.txt", MAX_UPLOAD_SIZE_BYTES, settings=_upload_settings())
+    validate_upload("big.txt", 100, settings=_upload_settings(upload_max_bytes=100))
+
+
+def test_storage_settings_upload_max_bytes_defaults_to_200_mib(monkeypatch) -> None:
+    from_env = StorageSettings()
+    assert from_env.upload_max_bytes == 200 * 1024 * 1024
+    monkeypatch.setenv("AZURE_UPLOAD_MAX_BYTES", "1234")
+    assert StorageSettings().upload_max_bytes == 1234

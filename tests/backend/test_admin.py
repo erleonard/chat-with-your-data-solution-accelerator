@@ -2002,6 +2002,7 @@ def _settings_with_storage(
     *,
     documents_container: str = "docs",
     doc_processing_queue: str = "doc-processing",
+    upload_max_bytes: int = 200 * 1024 * 1024,
     **kwargs: Any,
 ) -> Any:
     """Return a settings stub whose ``storage`` slot carries the
@@ -2011,6 +2012,7 @@ def _settings_with_storage(
     settings.storage = NS(
         documents_container=documents_container,
         doc_processing_queue=doc_processing_queue,
+        upload_max_bytes=upload_max_bytes,
     )
     return settings
 
@@ -2108,12 +2110,9 @@ async def test_upload_document_returns_413_when_over_size_cap(
     surface the cap to the operator.
     """
     # Force the cap to a tiny value so the test stays fast and small.
-    # The cap lives on the service helper (validate_upload reads it), so
-    # patch it there rather than on the router.
-    monkeypatch.setattr("backend.services.ingestion.MAX_UPLOAD_SIZE_BYTES", 16)
     sentinel = AsyncMock()
     monkeypatch.setattr(_admin_module, "upload_document", sentinel)
-    app = admin_app_factory(_settings_with_storage())
+    app = admin_app_factory(_settings_with_storage(upload_max_bytes=16))
     payload = b"x" * 32
     async with _client(app) as ac:
         resp = await ac.post(

@@ -266,6 +266,10 @@ class StorageSettings(BaseSettings):
     documents_container: str = ""
     doc_processing_queue: str = ""
     ingestion_trigger: IngestionTrigger = IngestionTrigger.DIRECT_ENQUEUE
+    # Admin upload size cap (`AZURE_UPLOAD_MAX_BYTES`). Sized for large
+    # 100+ page scanned PDFs; Document Intelligence accepts up to 500 MB
+    # per document on the S0 tier.
+    upload_max_bytes: int = Field(default=200 * 1024 * 1024, gt=0)
 
 
 class ObservabilitySettings(BaseSettings):
