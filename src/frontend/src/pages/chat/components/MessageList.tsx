@@ -37,20 +37,29 @@
  *     `<FluentThemeBridge>`). A per-component `Set<"<id>::<err>">`
  *     ref dedupes so identical SSE error frames or React Strict
  *     Mode double-invocation surface only one toast per failure.
+ *   - finished assistant answers get Markdown / Word download buttons
+ *     (`buildExportDocument` + `downloadMarkdown` / `downloadDocx`).
  * Both decorations are skipped when neither field applies.
  */
 import { useEffect, useRef } from "react";
 import {
+  Button,
   Toast,
   ToastBody,
   ToastTitle,
   useToastController,
 } from "@fluentui/react-components";
 import {
+  ArrowDownload16Regular,
   Bot20Regular,
   Chat48Regular,
   Person20Regular,
 } from "@fluentui/react-icons";
+import {
+  buildExportDocument,
+  downloadDocx,
+  downloadMarkdown,
+} from "@/api/exportDocument";
 import { ChatActionType, useChat } from "@/pages/chat/ChatContext";
 import { TOASTER_ID } from "@/theme/FluentThemeBridge";
 import { MarkdownContent } from "./MarkdownContent";
@@ -196,6 +205,51 @@ export function MessageList() {
                     >
                       AI-generated content may be incorrect
                     </p>
+                  )}
+                  {m.streaming !== true && m.content.length > 0 && (
+                    <div
+                      data-testid={`answer-export-${m.id}`}
+                      className={styles.exportActions}
+                    >
+                      <Button
+                        size="small"
+                        appearance="subtle"
+                        icon={<ArrowDownload16Regular />}
+                        data-testid={`answer-export-md-${m.id}`}
+                        onClick={() => {
+                          downloadMarkdown(
+                            buildExportDocument(m.content, m.citations),
+                          );
+                        }}
+                      >
+                        Markdown
+                      </Button>
+                      <Button
+                        size="small"
+                        appearance="subtle"
+                        icon={<ArrowDownload16Regular />}
+                        data-testid={`answer-export-docx-${m.id}`}
+                        onClick={() => {
+                          downloadDocx(
+                            buildExportDocument(m.content, m.citations),
+                          ).catch((err: unknown) => {
+                            dispatchToast(
+                              <Toast>
+                                <ToastTitle>Export failed</ToastTitle>
+                                <ToastBody>
+                                  {err instanceof Error
+                                    ? err.message
+                                    : String(err)}
+                                </ToastBody>
+                              </Toast>,
+                              { intent: "error" },
+                            );
+                          });
+                        }}
+                      >
+                        Word
+                      </Button>
+                    </div>
                   )}
                   {m.streaming !== true && referencedCitations.length > 0 && (
                     <CitationPanel

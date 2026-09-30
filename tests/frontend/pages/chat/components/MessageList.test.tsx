@@ -29,8 +29,25 @@ vi.mock("@fluentui/react-components", async () => {
   };
 });
 
+const downloadMarkdownMock = vi.fn();
+const downloadDocxMock = vi.fn();
+vi.mock("@/api/exportDocument", async () => {
+  const actual = await vi.importActual<typeof import("@/api/exportDocument")>(
+    "@/api/exportDocument",
+  );
+  return {
+    ...actual,
+    downloadMarkdown: (...args: unknown[]) => {
+      downloadMarkdownMock(...args);
+    },
+    downloadDocx: (...args: unknown[]) => downloadDocxMock(...args) as Promise<void>,
+  };
+});
+
 beforeEach(() => {
   dispatchToastMock.mockClear();
+  downloadMarkdownMock.mockClear();
+  downloadDocxMock.mockReset();
 });
 
 const m1: ChatMessage = { id: "1", role: "user", content: "hello" };
@@ -950,5 +967,58 @@ describe("MessageList auto scroll-to-bottom", () => {
       </ChatProvider>,
     );
     expect(scrollSpy).not.toHaveBeenCalled();
+  });
+
+  describe("answer export", () => {
+    const cited: ChatMessage = {
+      id: "9",
+      role: "assistant",
+      content: "# Plan\n\nShips in May [doc1].",
+      citations: [
+        { id: "c1", title: "a.pdf", url: "", snippet: "", score: null, metadata: {} },
+      ],
+    };
+
+    function seed(message: ChatMessage) {
+      render(
+        <ChatProvider>
+          <Seed messages={[]} />
+          <MessageList />
+        </ChatProvider>,
+      );
+      const dispatch = (Seed as unknown as { _dispatch: (a: { type: "add"; message: ChatMessage }) => void })._dispatch;
+      act(() => {
+        dispatch({ type: "add", message });
+      });
+    }
+
+    it("downloads the answer as Markdown with a Sources section", () => {
+      seed(cited);
+      fireEvent.click(screen.getByTestId("answer-export-md-9"));
+      expect(downloadMarkdownMock).toHaveBeenCalledWith({
+        title: "Plan",
+        markdown: "# Plan\n\nShips in May [1].\n\n## Sources\n\n1. a.pdf\n",
+      });
+    });
+
+    it("toasts when the Word export fails", async () => {
+      downloadDocxMock.mockRejectedValueOnce(new Error("boom"));
+      seed(cited);
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("answer-export-docx-9"));
+        await Promise.resolve();
+      });
+      expect(downloadDocxMock).toHaveBeenCalledTimes(1);
+      expect(dispatchToastMock).toHaveBeenCalledWith(
+        expect.anything(),
+        { intent: "error" },
+      );
+    });
+
+    it("hides export actions while streaming and on user messages", () => {
+      seed({ ...cited, id: "10", streaming: true });
+      expect(screen.queryByTestId("answer-export-10")).toBeNull();
+      expect(screen.queryByTestId("answer-export-1")).toBeNull();
+    });
   });
 });

@@ -230,3 +230,10 @@
   font-size: var(--fontSizeBase200);
   max-width: min(80%, 560px);
 }
+
+/* Download actions (Markdown / Word) under a finished assistant answer. */
+.exportActions {
+  display: flex;
+  gap: 4px;
+  margin-top: 2px;
+}
