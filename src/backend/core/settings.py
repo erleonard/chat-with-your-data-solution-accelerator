@@ -165,6 +165,11 @@ class OpenAISettings(BaseSettings):
     embedding_dimensions: int = 1536
     temperature: float = 0.0
     max_tokens: int = 1000
+    # Whole-document synthesis budgets: the output ceiling for each
+    # map / reduce completion, and the character budget of the source
+    # text folded into one map call.
+    synthesis_max_tokens: int = 4000
+    synthesis_batch_chars: int = 24000
 
 
 class DatabaseSettings(BaseSettings):

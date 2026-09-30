@@ -10,6 +10,10 @@
  *      `append_citation` / `set_error` actions on `ChatContext`.
  *   4. Dispatches `finish_stream` once the iterator completes.
  *
+ * When documents are scoped, a Synthesize button runs the same turn
+ * flow over `streamSynthesis` (whole-document project documentation),
+ * sending any typed text as the synthesis focus.
+ *
  * Citation frames are narrowed via the local `parseCitation` helper
  * before dispatch so a malformed wire payload (missing `id`) is
  * dropped at the boundary rather than corrupting reducer state. The
@@ -29,16 +33,18 @@ import {
 import { Button, ToggleButton } from "@fluentui/react-components";
 import {
   Broom24Regular,
+  DocumentText24Regular,
   Mic24Regular,
   MicOff24Regular,
   Send24Regular,
   Stop24Regular,
 } from "@fluentui/react-icons";
 import { useChat } from "@/pages/chat/ChatContext";
-import { streamChat } from "@/api/streamChat";
+import { streamChat, streamSynthesis } from "@/api/streamChat";
 import type {
   ChatMessage,
   Citation,
+  StreamEvent,
   StreamMessage,
 } from "@/models/chat";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
@@ -127,6 +133,8 @@ export function MessageInput() {
   const canSend =
     trimmed.length > 0 && !isStreaming && !speech.isListening;
   const micDisabled = isStreaming || speech.error !== null;
+  const canSynthesize =
+    state.documentSources.length > 0 && !isStreaming && !speech.isListening;
 
   async function toggleMic() {
     if (speech.isListening) {
@@ -141,10 +149,62 @@ export function MessageInput() {
     event.preventDefault();
     if (!canSend) return;
 
+    const history: StreamMessage[] = [
+      ...state.messages.map((m) => ({ role: m.role, content: m.content })),
+      { role: "user", content: trimmed },
+    ];
+    await runTurn(trimmed, (signal) =>
+      streamChat(history, {
+        conversationId: state.conversationId,
+        documentSources: state.documentSources,
+        signal,
+        onConversationId: (conversationId) => {
+          dispatch({ type: "set_conversation_id", conversationId });
+        },
+      }),
+    );
+  }
+
+  /**
+   * Read every section of the scoped documents and stream a grounded
+   * project document into a new assistant turn. Any text in the input
+   * is sent as the synthesis focus.
+   */
+  async function handleSynthesize() {
+    if (!canSynthesize) return;
+    const sources = [...state.documentSources];
+    const focus = trimmed;
+    const label =
+      `Synthesize project documentation from: ${sources.join(", ")}` +
+      (focus.length > 0 ? `\n\nFocus: ${focus}` : "");
+    await runTurn(label, (signal) =>
+      streamSynthesis(
+        focus.length > 0
+          ? { documentSources: sources, instructions: focus }
+          : { documentSources: sources },
+        {
+          conversationId: state.conversationId,
+          signal,
+          onConversationId: (conversationId) => {
+            dispatch({ type: "set_conversation_id", conversationId });
+          },
+        },
+      ),
+    );
+  }
+
+  /**
+   * Add the user turn plus a streaming assistant placeholder, then fold
+   * each SSE event from `open(signal)` into that placeholder.
+   */
+  async function runTurn(
+    userContent: string,
+    open: (signal: AbortSignal) => AsyncIterable<StreamEvent>,
+  ) {
     const userMessage: ChatMessage = {
       id: newId(),
       role: "user",
-      content: trimmed,
+      content: userContent,
     };
     const assistantId = newId();
     const assistantMessage: ChatMessage = {
@@ -155,15 +215,6 @@ export function MessageInput() {
       streaming: true,
     };
 
-    // Snapshot history BEFORE the dispatch -- `state.messages` from this
-    // closure is the pre-dispatch value, and we add the new user turn
-    // ourselves to keep the wire payload aligned with what the user
-    // actually saw on screen at submit time.
-    const history: StreamMessage[] = [
-      ...state.messages.map((m) => ({ role: m.role, content: m.content })),
-      { role: "user", content: trimmed },
-    ];
-
     dispatch({ type: "add", message: userMessage });
     dispatch({ type: "add", message: assistantMessage });
     setDraft("");
@@ -173,20 +224,7 @@ export function MessageInput() {
     controllerRef.current = controller;
 
     try {
-      for await (const ev of streamChat(history, {
-        // Continue the active thread when one exists; `null` starts a
-        // fresh conversation -- the backend mints the id and returns it
-        // on the terminal `conversation` control frame, surfaced via
-        // `onConversationId` below.
-        conversationId: state.conversationId,
-        documentSources: state.documentSources,
-        signal: controller.signal,
-        // Record the backend-resolved id so the next turn appends to
-        // the same conversation instead of starting another.
-        onConversationId: (conversationId) => {
-          dispatch({ type: "set_conversation_id", conversationId });
-        },
-      })) {
+      for await (const ev of open(controller.signal)) {
         switch (ev.channel) {
           case "answer":
             dispatch({
@@ -307,6 +345,22 @@ export function MessageInput() {
         icon={<Broom24Regular />}
         className={styles.mic}
       />
+      {state.documentSources.length > 0 ? (
+        <Button
+          appearance="subtle"
+          shape="circular"
+          type="button"
+          onClick={() => {
+            void handleSynthesize();
+          }}
+          disabled={!canSynthesize}
+          aria-label="Synthesize project documentation"
+          title="Synthesize project documentation from the selected documents (text in the box is used as the focus)"
+          data-testid="message-input-synthesize"
+          icon={<DocumentText24Regular />}
+          className={styles.mic}
+        />
+      ) : null}
       <ToggleButton
         appearance="subtle"
         shape="circular"

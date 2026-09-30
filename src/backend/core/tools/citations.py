@@ -323,17 +323,22 @@ async def enrich_kb_citations(
     return enriched
 
 
-def format_sources_block(sources: Sequence[SearchResult]) -> str:
+def format_sources_block(sources: Sequence[SearchResult], *, start: int = 1) -> str:
     """Render hits as ``[docN]: <content>`` lines for prompt injection.
 
     Empty input returns an empty string so callers can `if block:`
     cheaply. Matches the v1 prompt contract (`PostPromptValidator`
     uses the same shape) so prompt overrides drop in unchanged.
+
+    ``start`` offsets the first marker so a caller that feeds one
+    citation list to the model in several batches keeps every marker
+    globally unique (batch two of a 40-hit list starts at ``[doc21]``).
     """
     if not sources:
         return ""
     return "\n".join(
-        f"{doc_marker(i)}: {src.content}" for i, src in enumerate(sources, start=1)
+        f"{doc_marker(i)}: {src.content}"
+        for i, src in enumerate(sources, start=start)
     )
 
 
@@ -359,6 +364,28 @@ def filter_to_referenced(text: str, citations: Sequence[Citation]) -> list[Citat
     return [by_id[m] for m in referenced_markers(text) if m in by_id]
 
 
+
+def renumber_referenced(
+    text: str, citations: Sequence[Citation]
+) -> tuple[str, list[Citation]]:
+    """Keep only referenced citations and renumber them ``[doc1]..[docN]``.
+
+    Markers in ``text`` are rewritten to 1-based positions following the
+    order of ``citations``, and the returned citations carry the same ids, so
+    the frontend can resolve ``[docN]`` to ``citations[N-1]``. Markers
+    with no matching citation are left untouched.
+    """
+    referenced = filter_to_referenced(text, citations)
+    if not referenced:
+        return text, []
+    id_to_seq = {c.id: doc_marker(i) for i, c in enumerate(referenced, start=1)}
+    renumbered = _DOC_MARKER_RE.sub(
+        lambda m: id_to_seq.get(m.group(0), m.group(0)), text
+    )
+    return renumbered, [
+        c.model_copy(update={"id": id_to_seq[c.id]}) for c in referenced
+    ]
+
 __all__ = [
     "build_citations",
     "citations_from_annotations",
@@ -368,5 +395,6 @@ __all__ = [
     "format_sources_block",
     "normalize_kb_citations",
     "referenced_markers",
+    "renumber_referenced",
     "strip_kb_markers",
 ]

@@ -7,7 +7,7 @@
  * SSE line parser (no network).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { streamChat } from "@/api/streamChat";
+import { streamChat, streamSynthesis } from "@/api/streamChat";
 import { DEFAULT_USER_ID, setUserId } from "@/api/auth";
 import { loadRuntimeConfig, resetRuntimeConfig } from "@/api/runtimeConfig";
 import type { StreamEvent } from "@/models/chat";
@@ -401,6 +401,30 @@ describe("streamChat", () => {
       messages: [{ role: "user", content: "hi" }],
       conversation_id: "conv-42",
     });
+  });
+
+  it("streamSynthesis posts to /api/synthesize with the synthesis payload", async () => {
+    fetchMock.mockResolvedValueOnce(
+      sseResponse([
+        `event: reasoning\ndata: ${JSON.stringify({ content: "Reading a.pdf", metadata: {} })}\n\n`,
+        `event: answer\ndata: ${JSON.stringify({ content: "# Doc", metadata: {} })}\n\n`,
+      ]),
+    );
+    const events = await collect(
+      streamSynthesis(
+        { documentSources: ["a.pdf"], instructions: "  execs  " },
+        { conversationId: "c1" },
+      ),
+    );
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url.endsWith("/api/synthesize")).toBe(true);
+    expect(JSON.parse(init.body as string)).toEqual({
+      document_sources: ["a.pdf"],
+      format: "project_documentation",
+      instructions: "execs",
+      conversation_id: "c1",
+    });
+    expect(events.map((e) => e.channel)).toEqual(["reasoning", "answer"]);
   });
 
   it("sends document_sources only when a scope is selected", async () => {

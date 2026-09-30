@@ -39,6 +39,7 @@ const KNOWN_CHANNELS: ReadonlySet<StreamChannel> = new Set(
 );
 
 const CONVERSATION_PATH = "/api/conversation";
+const SYNTHESIZE_PATH = "/api/synthesize";
 const DEFAULT_MAX_RETRIES = 2;
 const DEFAULT_BASE_DELAY_MS = 500;
 
@@ -52,17 +53,13 @@ const DEFAULT_BASE_DELAY_MS = 500;
  */
 const CONVERSATION_EVENT = "conversation";
 
-/**
- * Absolute URL of the conversation endpoint. The backend origin comes
- * from the runtime `getBackendUrl()` seam (the `/config` `backendUrl`
- * resolved at boot, falling back to build-time `VITE_BACKEND_URL`) so
- * the same build targets the same-origin dev proxy and the deployed
- * separate-origin backend without a rebuild -- matching the
- * `documentHref` / `HistoryPanel` base convention.
+/*
+ * Endpoint URLs are resolved per request from the runtime
+ * `getBackendUrl()` seam (the `/config` `backendUrl` resolved at boot,
+ * falling back to build-time `VITE_BACKEND_URL`) so the same build
+ * targets the same-origin dev proxy and the deployed separate-origin
+ * backend without a rebuild.
  */
-function conversationUrl(): string {
-  return `${getBackendUrl()}${CONVERSATION_PATH}`;
-}
 
 export interface StreamChatOptions {
   /**
@@ -188,11 +185,69 @@ export async function* streamChat(
   messages: StreamMessage[],
   options: StreamChatOptions = {},
 ): AsyncIterable<StreamEvent> {
+  const payload: {
+    messages: StreamMessage[];
+    conversation_id?: string;
+    document_sources?: string[];
+  } = { messages };
+  const conversationId = options.conversationId ?? null;
+  const documentSources = options.documentSources ?? [];
+  if (conversationId !== null) payload.conversation_id = conversationId;
+  if (documentSources.length > 0) {
+    payload.document_sources = [...documentSources];
+  }
+  yield* streamWithRetry(CONVERSATION_PATH, payload, options);
+}
+
+/** Artifact shapes accepted by `POST /api/synthesize`. */
+export const SynthesisFormat = {
+  ProjectDocumentation: "project_documentation",
+} as const;
+export type SynthesisFormat =
+  (typeof SynthesisFormat)[keyof typeof SynthesisFormat];
+
+export interface SynthesisRequest {
+  /** Indexed source names to read in full (at least one). */
+  documentSources: readonly string[];
+  format?: SynthesisFormat;
+  /** Optional focus text (audience, sections to emphasize). */
+  instructions?: string;
+}
+
+/**
+ * Open an SSE stream against `POST /api/synthesize`. Same transport,
+ * retry, cancellation, and channel contract as `streamChat`; the
+ * backend reads every section of the selected documents and streams
+ * progress on `reasoning`, then `citation` and `answer` frames.
+ */
+export async function* streamSynthesis(
+  request: SynthesisRequest,
+  options: Omit<StreamChatOptions, "documentSources"> = {},
+): AsyncIterable<StreamEvent> {
+  const payload: {
+    document_sources: string[];
+    format: SynthesisFormat;
+    instructions?: string;
+    conversation_id?: string;
+  } = {
+    document_sources: [...request.documentSources],
+    format: request.format ?? SynthesisFormat.ProjectDocumentation,
+  };
+  const instructions = request.instructions?.trim() ?? "";
+  if (instructions.length > 0) payload.instructions = instructions;
+  const conversationId = options.conversationId ?? null;
+  if (conversationId !== null) payload.conversation_id = conversationId;
+  yield* streamWithRetry(SYNTHESIZE_PATH, payload, options);
+}
+
+async function* streamWithRetry(
+  path: string,
+  payload: object,
+  options: StreamChatOptions,
+): AsyncIterable<StreamEvent> {
   const maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES;
   const baseDelayMs = options.baseDelayMs ?? DEFAULT_BASE_DELAY_MS;
   const signal = options.signal;
-  const conversationId = options.conversationId ?? null;
-  const documentSources = options.documentSources ?? [];
   const onConversationId = options.onConversationId;
 
   throwIfAborted(signal);
@@ -201,9 +256,8 @@ export async function* streamChat(
     let yieldedAny = false;
     try {
       for await (const ev of streamChatOnce({
-        messages,
-        conversationId,
-        documentSources,
+        path,
+        payload,
         signal,
         onConversationId,
       })) {
@@ -227,9 +281,8 @@ export async function* streamChat(
 }
 
 interface StreamChatOnceParams {
-  messages: StreamMessage[];
-  conversationId: string | null;
-  documentSources: readonly string[];
+  path: string;
+  payload: object;
   signal: AbortSignal | undefined;
   onConversationId: ((conversationId: string) => void) | undefined;
 }
@@ -237,20 +290,10 @@ interface StreamChatOnceParams {
 async function* streamChatOnce(
   params: StreamChatOnceParams,
 ): AsyncIterable<StreamEvent> {
-  const { messages, conversationId, documentSources, signal, onConversationId } =
-    params;
-  const payload: {
-    messages: StreamMessage[];
-    conversation_id?: string;
-    document_sources?: string[];
-  } = { messages };
-  if (conversationId !== null) payload.conversation_id = conversationId;
-  if (documentSources.length > 0) {
-    payload.document_sources = [...documentSources];
-  }
+  const { path, payload, signal, onConversationId } = params;
   let response: Response;
   try {
-    response = await fetch(conversationUrl(), {
+    response = await fetch(`${getBackendUrl()}${path}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

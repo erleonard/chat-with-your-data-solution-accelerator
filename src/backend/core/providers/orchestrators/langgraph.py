@@ -23,14 +23,13 @@ retrieves grounding documents for the latest user message, injects
 them as a numbered ``[doc1] / [doc2] / ...`` system message via
 ``shared.tools.citations.format_sources_block``, and emits one
 ``citation`` event per marker actually referenced in the assistant
-reply (filtered through ``filter_to_referenced``). When ``search`` is
+reply (filtered through ``renumber_referenced``). When ``search`` is
 ``None`` the orchestrator stays in pass-through mode -- no retrieval,
 no citation events -- so the existing single-answer contract is
 preserved for callers that haven't wired search through DI yet.
 """
 
 import operator
-import re
 from typing import Annotated, Any, AsyncIterator, Sequence, TypedDict
 
 from langgraph.graph import (  # pyright: ignore[reportMissingTypeStubs]
@@ -44,9 +43,8 @@ from backend.core.providers.search.base import BaseSearch
 from backend.core.settings import AppSettings
 from backend.core.tools.citations import (
     build_citations,
-    doc_marker,
-    filter_to_referenced,
     format_sources_block,
+    renumber_referenced,
 )
 from backend.core.types import (
     ChatMessage,
@@ -228,20 +226,7 @@ class LangGraphOrchestrator(OrchestratorBase):
             )
             return
 
-        referenced = filter_to_referenced(answer, citations)
-        # Rewrite [docN] markers to 1-based sequential positions so the
-        # frontend parseAnswer can map [docN] -> citations[N-1] by index.
-        if referenced:
-            id_to_seq = {c.id: doc_marker(i) for i, c in enumerate(referenced, start=1)}
-            answer = re.sub(
-                r"\[doc\d+\]",
-                lambda m: id_to_seq.get(m.group(0), m.group(0)),
-                answer,
-            )
-            referenced = [
-                c.model_copy(update={"id": doc_marker(i)})
-                for i, c in enumerate(referenced, start=1)
-            ]
+        answer, referenced = renumber_referenced(answer, citations)
         for citation in referenced:
             yield OrchestratorEvent(
                 channel=OrchestratorChannel.CITATION,

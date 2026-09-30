@@ -26,7 +26,15 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.exception_handlers import install_exception_handlers
-from backend.routers import admin, conversation, files, health, history, speech
+from backend.routers import (
+    admin,
+    conversation,
+    files,
+    health,
+    history,
+    speech,
+    synthesize,
+)
 from backend.core.providers.agents import registry as agents_registry
 from backend.core.providers.credentials import registry as credentials_registry
 from backend.core.providers.databases import registry as databases_registry
@@ -319,6 +327,7 @@ def create_app() -> FastAPI:
 
     app.include_router(health.router)
     app.include_router(conversation.router)
+    app.include_router(synthesize.router)
     app.include_router(history.router)
     app.include_router(speech.router)
     app.include_router(admin.router)
