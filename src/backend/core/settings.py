@@ -98,6 +98,14 @@ class OrchestratorName(StrEnum):
     AGENT_FRAMEWORK = "agent_framework"
 
 
+class ImageSize(StrEnum):
+    """Output dimensions accepted by the gpt-image deployment."""
+
+    SQUARE = "1024x1024"
+    PORTRAIT = "1024x1536"
+    LANDSCAPE = "1536x1024"
+
+
 class IngestionTrigger(StrEnum):
     """How a written source blob gets picked up for indexing.
 
@@ -165,6 +173,15 @@ class OpenAISettings(BaseSettings):
     embedding_dimensions: int = 1536
     temperature: float = 0.0
     max_tokens: int = 1000
+    # Whole-document synthesis budgets: the output ceiling for each
+    # map / reduce completion, and the character budget of the source
+    # text folded into one map call.
+    synthesis_max_tokens: int = 4000
+    synthesis_batch_chars: int = 24000
+    # Optional gpt-image deployment for AI-generated infographics; empty
+    # disables the feature.
+    image_deployment: str = ""
+    image_size: ImageSize = ImageSize.PORTRAIT
 
 
 class DatabaseSettings(BaseSettings):
@@ -266,6 +283,10 @@ class StorageSettings(BaseSettings):
     documents_container: str = ""
     doc_processing_queue: str = ""
     ingestion_trigger: IngestionTrigger = IngestionTrigger.DIRECT_ENQUEUE
+    # Admin upload size cap (`AZURE_UPLOAD_MAX_BYTES`). Sized for large
+    # 100+ page scanned PDFs; Document Intelligence accepts up to 500 MB
+    # per document on the S0 tier.
+    upload_max_bytes: int = Field(default=200 * 1024 * 1024, gt=0)
 
 
 class ObservabilitySettings(BaseSettings):

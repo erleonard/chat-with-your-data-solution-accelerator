@@ -51,6 +51,10 @@ See [Chat history](chat_history.md) and [PostgreSQL](postgreSQL.md).
 | `AZURE_EMBEDDING_MODEL_CAPACITY` | integer | `100` | Embedding model capacity (TPM, thousands). |
 | `AZURE_OPENAI_API_VERSION` | string | `2025-01-01-preview` | API version for chat and embedding calls. |
 | `AZURE_AI_AGENT_API_VERSION` | string | `2025-05-01` | API version for the Foundry agent runtime. |
+| `AZURE_IMAGE_MODEL_NAME` | string | (empty) | Optional gpt-image deployment for AI-generated infographics. Empty deploys no image model. |
+| `AZURE_IMAGE_MODEL_VERSION` | string | `2025-04-15` | Image model version. |
+| `AZURE_IMAGE_MODEL_DEPLOYMENT_TYPE` | string | `GlobalStandard` | Image model deployment type. |
+| `AZURE_IMAGE_MODEL_CAPACITY` | integer | `1` | Image model capacity. |
 
 See [Model configuration](model_configuration.md) and [Model quota settings](azure_openai_model_quota_settings.md).
 

@@ -694,7 +694,7 @@ async def upload_document_endpoint(
 
     * ``200`` + :class:`UploadResponse` on success.
     * ``413`` when the uploaded file exceeds
-      :data:`backend.services.ingestion.MAX_UPLOAD_SIZE_BYTES`.
+      ``settings.storage.upload_max_bytes`` (``AZURE_UPLOAD_MAX_BYTES``).
     * ``415`` when the filename has no extension or an extension
       that is not registered in the parser registry -- the parser
       registry is the authoritative source of "supported file

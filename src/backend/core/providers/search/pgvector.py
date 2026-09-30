@@ -48,7 +48,7 @@ from backend.core.settings import AppSettings
 from backend.core.types import SearchDocument, SearchResult
 
 from .registry import registry
-from .base import BaseSearch, SourceListing
+from .base import BaseSearch, SourceListing, order_chunks
 
 logger = logging.getLogger(__name__)
 
@@ -95,6 +95,7 @@ class PgVector(BaseSearch):
         use_semantic_search: bool | None = None,
         vector: Sequence[float] | None = None,
         filter_expression: str | None = None,
+        sources: Sequence[str] | None = None,
     ) -> Sequence[SearchResult]:
         # pgvector has no semantic re-ranking mode: retrieval is dense
         # cosine (`vector` provided) or Postgres FTS (text fallback), so
@@ -103,6 +104,7 @@ class PgVector(BaseSearch):
         _ = use_semantic_search
         cfg = self._settings.search
         effective_top_k = top_k if top_k is not None else cfg.top_k
+        scope = sorted({source for source in sources or () if source})
         # Table name is allow-listed at construction (`self._table`),
         # never user-supplied -- safe to interpolate. All values are
         # parameterized.
@@ -113,10 +115,16 @@ class PgVector(BaseSearch):
                 f"FROM {self._table} "
             )
             params: list[Any] = [_format_vector_literal(vector)]
+            conditions: list[str] = []
             if filter_expression:
-                sql += f"WHERE {filter_expression} "
-            sql += "ORDER BY content_vector <=> $1::vector LIMIT $2"
+                conditions.append(filter_expression)
+            if scope:
+                params.append(scope)
+                conditions.append(f"title = ANY(${len(params)}::text[])")
+            if conditions:
+                sql += f"WHERE {' AND '.join(f'({c})' if len(conditions) > 1 else c for c in conditions)} "
             params.append(effective_top_k)
+            sql += f"ORDER BY content_vector <=> $1::vector LIMIT ${len(params)}"
         else:
             # Text-only fallback: Postgres FTS. ts_rank gives a
             # comparable [0..1] score so callers can blend with
@@ -132,15 +140,18 @@ class PgVector(BaseSearch):
             params = [query]
             if filter_expression:
                 sql += f"AND ({filter_expression}) "
-            sql += "ORDER BY score DESC LIMIT $2"
+            if scope:
+                params.append(scope)
+                sql += f"AND title = ANY(${len(params)}::text[]) "
             params.append(effective_top_k)
+            sql += f"ORDER BY score DESC LIMIT ${len(params)}"
 
         try:
             rows = cast(
                 "list[Mapping[str, Any]]",
-                await self._pool.fetch(
+                await self._pool.fetch(  # pyright: ignore[reportUnknownMemberType]
                     sql, *params
-                ),  # pyright: ignore[reportUnknownMemberType]
+                ),
             )
         except asyncpg.PostgresError:
             # SDK boundary per Hard Rule #14: structured-log with the
@@ -161,6 +172,39 @@ class PgVector(BaseSearch):
             )
             for r in rows
         ]
+
+    async def list_chunks(self, source: str) -> list[SearchResult]:
+        sql = (
+            f"SELECT id, content, title, url FROM {self._table} "
+            f"WHERE title = $1"
+        )
+        try:
+            rows = cast(
+                "list[Mapping[str, Any]]",
+                await self._pool.fetch(  # pyright: ignore[reportUnknownMemberType]
+                    sql, source
+                ),
+            )
+        except asyncpg.PostgresError:
+            logger.exception(
+                "pgvector list_chunks failed",
+                extra={
+                    "operation": "list_chunks",
+                    "provider": "pgvector",
+                    "source": source,
+                },
+            )
+            raise
+        chunks = [
+            SearchResult(
+                id=str(r["id"]),
+                content=str(r["content"] or ""),
+                title=str(r["title"] or ""),
+                url=str(r["url"] or ""),
+            )
+            for r in rows
+        ]
+        return order_chunks(source, chunks)
 
     async def delete_by_source(self, source: str) -> int:
         # Same `title` field as Azure Search (ingestion writes source

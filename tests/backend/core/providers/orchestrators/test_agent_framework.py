@@ -1183,3 +1183,40 @@ async def test_run_grounds_on_pgvector_when_kb_unconfigured() -> None:
     answer_events = [e for e in events if e.channel == "answer"]
     assert len(answer_events) == 1
     assert answer_events[0].content == "You can work remotely [doc1]."
+
+
+@pytest.mark.asyncio
+async def test_run_document_scope_bypasses_kb_tool_and_grounds_app_side() -> None:
+    """With a document scope, the KB MCP tool (which cannot be scoped) is
+    not attached even when configured; retrieval runs app-side through
+    `BaseSearch.search(sources=...)`."""
+    llm = MagicMock(spec=BaseLLMProvider)
+    llm.supports_reasoning = AsyncMock(return_value=False)
+    llm.embed = AsyncMock(return_value=SimpleNamespace(vectors=[[0.1]]))
+    search = MagicMock()
+    search.search = AsyncMock(
+        return_value=[
+            SearchResult(id="k1", content="Scoped fact.", title="a.pdf", score=0.9)
+        ]
+    )
+    agent = _FakeAgent(updates=[_update(_text_block("Fact [doc1]."))])
+    provider = _FakeAgentsProvider(agent=agent)
+    orch = AgentFrameworkOrchestrator(
+        settings=_settings_with_search(
+            endpoint="https://srch.example",
+            kb_name="cwyd-kb",
+            api_version="2025-11-01-preview",
+            connection_name="search-conn",
+        ),
+        llm=llm,
+        agents=provider,
+        db=object(),
+        search=search,
+        search_sources=["a.pdf"],
+    )
+
+    events = [ev async for ev in orch.run([ChatMessage(role="user", content="q")])]
+
+    assert provider.build_calls[0]["extra_tools"] is None
+    assert search.search.call_args.kwargs["sources"] == ["a.pdf"]
+    assert [e.metadata["id"] for e in events if e.channel == "citation"] == ["[doc1]"]

@@ -27,12 +27,13 @@ from azure.core.credentials_async import AsyncTokenCredential
 from azure.core.exceptions import AzureError
 from pydantic import BaseModel, ConfigDict
 
-from backend.core.settings import AppSettings
+from backend.core.settings import AppSettings, ImageSize
 from backend.core.types import (
     ChatChunk,
     ChatMessage,
     ChatRole,
     EmbeddingResult,
+    GeneratedImage,
     OrchestratorChannel,
     OrchestratorEvent,
 )
@@ -113,6 +114,18 @@ class _EmbeddingResponse(Protocol):
     data: list[_EmbeddingItem]
 
 
+class _ImageItem(Protocol):
+    b64_json: str | None
+
+
+class _ImageResponse(Protocol):
+    data: list[_ImageItem]
+
+
+class _Images(Protocol):
+    async def generate(self, **kwargs: Any) -> _ImageResponse: ...
+
+
 class _ChatCompletions(Protocol):
     async def create(self, **kwargs: Any) -> Any: ...
 
@@ -143,6 +156,7 @@ class _OpenAIClient(Protocol):
     chat: _ChatNamespace
     embeddings: _Embeddings
     responses: _Responses
+    images: _Images
 
 
 class _ProjectClientView(Protocol):
@@ -452,6 +466,43 @@ class FoundryIQ(BaseLLMProvider):
             vectors=[item.embedding for item in response.data],
             model=model,
         )
+
+    async def generate_image(
+        self,
+        prompt: str,
+        *,
+        deployment: str | None = None,
+        size: ImageSize = ImageSize.PORTRAIT,
+    ) -> GeneratedImage:
+        """Generate one PNG through the account-scoped gpt-image deployment.
+
+        Image generation, like embeddings, is an account-scoped data
+        operation, so it reuses the account-endpoint client.
+        """
+        model = deployment or self._settings.openai.image_deployment
+        if not model:
+            raise RuntimeError(
+                "AZURE_OPENAI_IMAGE_DEPLOYMENT is not set; image generation is disabled."
+            )
+        oai = await self._get_embeddings_client()
+        try:
+            response = await oai.images.generate(
+                model=model, prompt=prompt, size=size.value, n=1
+            )
+        except openai.APIError:
+            logger.exception(
+                "foundry_iq images.generate failed",
+                extra={
+                    "operation": "generate_image",
+                    "provider": "foundry_iq",
+                    "deployment": model,
+                },
+            )
+            raise
+        b64 = response.data[0].b64_json if response.data else None
+        if not b64:
+            raise RuntimeError(f"Image deployment {model!r} returned no image data.")
+        return GeneratedImage(b64_data=b64, model=model)
 
     async def reason(
         self,

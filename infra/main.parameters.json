@@ -56,6 +56,18 @@
     "embeddingModelCapacity": {
       "value": "${AZURE_EMBEDDING_MODEL_CAPACITY=100}"
     },
+    "imageModelName": {
+      "value": "${AZURE_IMAGE_MODEL_NAME=}"
+    },
+    "imageModelVersion": {
+      "value": "${AZURE_IMAGE_MODEL_VERSION=2025-04-15}"
+    },
+    "imageModelDeploymentType": {
+      "value": "${AZURE_IMAGE_MODEL_DEPLOYMENT_TYPE=GlobalStandard}"
+    },
+    "imageModelCapacity": {
+      "value": "${AZURE_IMAGE_MODEL_CAPACITY=1}"
+    },
     "azureOpenAiApiVersion": {
       "value": "${AZURE_OPENAI_API_VERSION=2025-01-01-preview}"
     },

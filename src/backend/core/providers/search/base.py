@@ -30,6 +30,7 @@ from typing import Any, Sequence
 from azure.core.credentials_async import AsyncTokenCredential
 from pydantic import BaseModel, ConfigDict, Field
 
+from backend.core.providers.parsers.base import BaseParser
 from backend.core.settings import AppSettings
 from backend.core.types import SearchDocument, SearchResult
 
@@ -65,6 +66,22 @@ class SourceListing(BaseModel):
     )
 
 
+def order_chunks(source: str, chunks: Sequence[SearchResult]) -> list[SearchResult]:
+    """Sort ``chunks`` of one ``source`` into ingestion (page) order.
+
+    Ingestion keys each chunk with
+    ``BaseParser.make_chunk_id(source, index)``, so the original index is
+    recovered by recomputing the key for ``0..len(chunks)-1``. Chunks whose
+    key does not match (e.g. written by a different ingestion path) keep
+    their relative order after the matched ones.
+    """
+    index_by_id = {
+        BaseParser.make_chunk_id(source, index): index for index in range(len(chunks))
+    }
+    fallback = len(chunks)
+    return sorted(chunks, key=lambda chunk: index_by_id.get(chunk.id, fallback))
+
+
 class BaseSearch(ABC):
     def __init__(
         self,
@@ -83,6 +100,7 @@ class BaseSearch(ABC):
         use_semantic_search: bool | None = None,
         vector: Sequence[float] | None = None,
         filter_expression: str | None = None,
+        sources: Sequence[str] | None = None,
     ) -> Sequence[SearchResult]:
         """Return search hits for the given query.
 
@@ -100,6 +118,10 @@ class BaseSearch(ABC):
           azure_search, SQL fragment for pgvector). Pass-through; no
           parsing here. Named `filter_expression` to avoid shadowing
           the `filter()` builtin.
+        - `sources`: optional document scope. When non-empty, only chunks
+          whose source (the `title` field) exactly equals one of these
+          values are returned. Provider-agnostic so callers never build
+          OData / SQL themselves. None or empty = no scoping.
         """
 
     @abstractmethod
@@ -139,6 +161,23 @@ class BaseSearch(ABC):
         """
         raise NotImplementedError(
             f"{type(self).__name__} does not implement list_sources; "
+            "override on the concrete provider class."
+        )
+
+    async def list_chunks(self, source: str) -> list[SearchResult]:
+        """Return every indexed chunk of ``source`` in document order.
+
+        Full-document read used by synthesis: where :meth:`search`
+        returns the top-k most relevant chunks, this returns all of them
+        so a 100+ page document can be summarized end to end. Ordering is
+        recovered from the deterministic chunk key (see
+        :func:`order_chunks`), so no index schema field is required.
+
+        Default implementation raises ``NotImplementedError`` (same
+        fail-loud contract as :meth:`list_sources`).
+        """
+        raise NotImplementedError(
+            f"{type(self).__name__} does not implement list_chunks; "
             "override on the concrete provider class."
         )
 

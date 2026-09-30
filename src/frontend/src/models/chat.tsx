@@ -89,6 +89,12 @@ export interface ChatMessage {
 export interface ChatState {
   messages: ChatMessage[];
   /**
+   * Indexed sources the user scoped retrieval to. Empty means every
+   * indexed document. Sticky across new chats and history loads so a
+   * chosen scope survives until the user changes it.
+   */
+  documentSources: string[];
+  /**
    * Id of the conversation this transcript belongs to, or `null` for a
    * fresh chat whose first turn has not been persisted yet. Set from the
    * terminal `conversation` SSE control frame once the backend persists a

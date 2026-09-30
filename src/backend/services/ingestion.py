@@ -52,11 +52,6 @@ from functions.core.storage_endpoints import resolve_storage_endpoints
 
 logger = logging.getLogger(__name__)
 
-# Hard upload cap surfaced to the route layer so the 413 boundary +
-# the service helper agree on one number. Matches v1's admin upload
-# limit; tuned alongside the Functions host's request-size ceiling.
-MAX_UPLOAD_SIZE_BYTES = 50 * 1024 * 1024
-
 # Ext-less URLs (and any whose path extension is not a registered parser
 # key) are web pages, so they're stored with the HTML parser's extension
 # -- the pipeline's HtmlParser extracts clean text from them.
@@ -192,7 +187,8 @@ def validate_upload(filename: str, content_size: int, *, settings: AppSettings) 
       The parser declares its own need via
       :attr:`backend.core.providers.parsers.base.BaseParser.requires_ai_services`,
       so no extension set is hard-coded here (Hard Rule #4);
-    * ``content_size`` exceeds :data:`MAX_UPLOAD_SIZE_BYTES` (``413``).
+    * ``content_size`` exceeds ``settings.storage.upload_max_bytes``
+      (``413``).
     """
     if (
         not settings.storage.documents_container
@@ -233,13 +229,14 @@ def validate_upload(filename: str, content_size: int, *, settings: AppSettings) 
                 "cannot be indexed."
             ),
         )
-    if content_size > MAX_UPLOAD_SIZE_BYTES:
+    max_bytes = settings.storage.upload_max_bytes
+    if content_size > max_bytes:
         raise UploadRejected(
             status_code=HTTPStatus.REQUEST_ENTITY_TOO_LARGE,
             detail={
                 "msg": "Uploaded file exceeds the maximum allowed size.",
                 "byte_count": content_size,
-                "max_byte_count": MAX_UPLOAD_SIZE_BYTES,
+                "max_byte_count": max_bytes,
             },
         )
 
@@ -400,7 +397,6 @@ async def reprocess_all(
 
 
 __all__ = [
-    "MAX_UPLOAD_SIZE_BYTES",
     "ingest_url",
     "reprocess_all",
     "upload_document",

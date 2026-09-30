@@ -84,6 +84,7 @@ You ask a question in natural language. The backend retrieves the most relevant 
 <summary>Click to learn more about the key features this solution enables</summary>
 
 - Responses are grounded in your indexed content with inline citations back to the source documents.
+- Scope answers to selected documents, synthesize whole 100+ page files into project documentation, export to Markdown or Word, and render grounded infographics. See [Document synthesis, export, and infographics](docs/synthesis_and_infographics.md).
 - Upload files or index public web pages through a document ingestion pipeline that parses, chunks, and embeds many [supported file types](docs/supported_file_types.md).
 - Choose Azure AI Search with Cosmos DB or PostgreSQL with pgvector as your retrieval and persistence engine, selected at deploy time.
 - Choose between two interchangeable orchestrators, Agent Framework or LangGraph, that share the same retrieval and grounding pipeline and are selected at deploy time.
@@ -214,6 +215,7 @@ Organizations hold large volumes of unstructured content including contracts, po
 | [Admin and configuration](docs/admin.md) | Ingest, inspect, and configure your data and prompts. |
 | [Document ingestion](docs/document_ingestion.md) | How documents are parsed, chunked, and indexed. |
 | [Supported file types](docs/supported_file_types.md) | File formats the pipeline accepts. |
+| [Document synthesis, export, and infographics](docs/synthesis_and_infographics.md) | Whole-document synthesis, document scoping, export, and infographics. |
 | [Streaming responses](docs/streaming_responses.md) | How answers stream to the browser over SSE. |
 | [Chat history](docs/chat_history.md) | How conversations are stored and retrieved. |
 | [Best practices](docs/best_practices.md) | Retrieval, chunking, and production guidance. |

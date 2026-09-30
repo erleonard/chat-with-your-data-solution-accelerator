@@ -1,5 +1,6 @@
 """Tests for the LLM provider domain."""
 
+import logging
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
@@ -12,7 +13,7 @@ from azure.core.exceptions import AzureError, ServiceRequestError
 from backend.core.providers.llm import registry as llm_registry
 from backend.core.providers.llm.base import BaseLLMProvider
 from backend.core.providers.llm.foundry_iq import FoundryIQ
-from backend.core.settings import AppSettings
+from backend.core.settings import AppSettings, ImageSize
 from backend.core.types import ChatChunk, ChatMessage, EmbeddingResult
 
 # ---------------------------------------------------------------------------
@@ -1197,3 +1198,53 @@ def test_is_reasoning_unsupported_classifies_param_and_message() -> None:
     assert FoundryIQ._is_reasoning_unsupported(message_err) is True
     assert FoundryIQ._is_reasoning_unsupported(throttle_err) is False
     assert FoundryIQ._is_reasoning_unsupported(missing_err) is False
+
+
+async def test_generate_image_uses_account_client_and_returns_png(
+    settings: AppSettings, fake_credential: MagicMock
+) -> None:
+    oai = MagicMock()
+    oai.images.generate = AsyncMock(
+        return_value=SimpleNamespace(data=[SimpleNamespace(b64_json="aW1n")])
+    )
+    project = _build_fake_project_client(oai)
+    provider = FoundryIQ(settings, fake_credential, project_client=project)
+    result = await provider.generate_image(
+        "draw", deployment="gpt-image-1", size=ImageSize.SQUARE
+    )
+    assert result.b64_data == "aW1n"
+    assert result.media_type == "image/png"
+    assert oai.images.generate.await_args.kwargs == {
+        "model": "gpt-image-1",
+        "prompt": "draw",
+        "size": "1024x1024",
+        "n": 1,
+    }
+    assert project.get_openai_client.call_args.kwargs["base_url"].endswith("/openai/v1")
+
+
+async def test_generate_image_requires_deployment(
+    settings: AppSettings, fake_credential: MagicMock
+) -> None:
+    provider = FoundryIQ(
+        settings, fake_credential, project_client=_build_fake_project_client(MagicMock())
+    )
+    with pytest.raises(RuntimeError, match="AZURE_OPENAI_IMAGE_DEPLOYMENT"):
+        await provider.generate_image("draw")
+
+
+async def test_generate_image_logs_and_reraises_on_openai_api_error(
+    settings: AppSettings,
+    fake_credential: MagicMock,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    oai = MagicMock()
+    oai.images.generate = AsyncMock(side_effect=_api_error("content filtered"))
+    provider = FoundryIQ(
+        settings, fake_credential, project_client=_build_fake_project_client(oai)
+    )
+    with caplog.at_level(logging.ERROR), pytest.raises(openai.APIError):
+        await provider.generate_image("draw", deployment="gpt-image-1")
+    assert any(
+        getattr(r, "operation", None) == "generate_image" for r in caplog.records
+    )

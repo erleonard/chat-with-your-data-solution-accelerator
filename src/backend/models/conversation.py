@@ -22,6 +22,15 @@ class ConversationRequest(BaseModel):
             "send null to start a new conversation."
         ),
     )
+    document_sources: list[str] | None = Field(
+        default=None,
+        max_length=50,
+        description=(
+            "Optional document scope: source names (as listed by "
+            "GET /api/admin/documents) that retrieval is restricted to. "
+            "Omit or send null to search every indexed document."
+        ),
+    )
 
 
 class ConversationResponse(BaseModel):

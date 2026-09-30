@@ -5,12 +5,16 @@ import {
   useChat,
 } from "@/pages/chat/ChatContext";
 import { MessageInput } from "@/pages/chat/components/MessageInput";
-import { streamChat } from "@/api/streamChat";
+import { streamChat, streamSynthesis } from "@/api/streamChat";
 import type { StreamEvent } from "@/models/chat";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 
-vi.mock("@/api/streamChat", () => ({
+vi.mock("@/api/streamChat", async () => ({
+  ...(await vi.importActual<typeof import("@/api/streamChat")>(
+    "@/api/streamChat",
+  )),
   streamChat: vi.fn(),
+  streamSynthesis: vi.fn(),
 }));
 
 vi.mock("@/hooks/useSpeechRecognition", () => ({
@@ -18,6 +22,7 @@ vi.mock("@/hooks/useSpeechRecognition", () => ({
 }));
 
 const streamChatMock = vi.mocked(streamChat);
+const streamSynthesisMock = vi.mocked(streamSynthesis);
 const useSpeechRecognitionMock = vi.mocked(useSpeechRecognition);
 
 // Default speech state -- idle, no transcript, no error. Individual
@@ -852,5 +857,109 @@ describe("MessageInput mic button", () => {
     renderInput();
     expect(getField().value).toBe("something to send");
     expect(getSend()).toBeDisabled();
+  });
+});
+
+function ScopeSetter({ sources }: { sources: string[] }) {
+  const { dispatch } = useChat();
+  return (
+    <button
+      type="button"
+      data-testid="set-scope"
+      onClick={() => {
+        dispatch({ type: "set_document_sources", documentSources: sources });
+      }}
+    >
+      scope
+    </button>
+  );
+}
+
+describe("MessageInput synthesize button", () => {
+  beforeEach(() => {
+    streamSynthesisMock.mockReset();
+    streamChatMock.mockReset();
+  });
+
+  function renderScoped(sources: string[]) {
+    render(
+      <ChatProvider>
+        <ScopeSetter sources={sources} />
+        <MessageInput />
+        <Probe />
+      </ChatProvider>,
+    );
+    fireEvent.click(screen.getByTestId("set-scope"));
+  }
+
+  it("is hidden when no documents are scoped", () => {
+    renderInput();
+    expect(screen.queryByTestId("message-input-synthesize")).toBeNull();
+  });
+
+  it("streams a synthesis over the scoped documents with the draft as focus", async () => {
+    streamSynthesisMock.mockReturnValue(
+      iterableOf([
+        { channel: "reasoning", content: "Reading a.pdf…\n", metadata: {} },
+        { channel: "answer", content: "# Project [doc1]", metadata: {} },
+      ]),
+    );
+    renderScoped(["a.pdf", "b.docx"]);
+    fireEvent.change(getField(), { target: { value: "for executives" } });
+    fireEvent.click(screen.getByTestId("message-input-synthesize"));
+
+    await waitFor(() => {
+      expect(streamSynthesisMock).toHaveBeenCalledTimes(1);
+    });
+    expect(streamSynthesisMock.mock.calls[0]![0]).toEqual({
+      documentSources: ["a.pdf", "b.docx"],
+      format: "project_documentation",
+      instructions: "for executives",
+    });
+    expect(streamChatMock).not.toHaveBeenCalled();
+    await waitFor(() => {
+      const messages = probeMessages();
+      expect(messages[1].content).toBe("# Project [doc1]");
+      expect(messages[1].streaming).toBe(false);
+    });
+    const messages = probeMessages();
+    expect(messages[0].content).toBe(
+      "Synthesize project documentation from: a.pdf, b.docx\n\nFocus: for executives",
+    );
+    expect(messages[1].reasoning).toEqual(["Reading a.pdf…\n"]);
+  });
+
+  it("omits instructions when the draft is empty", async () => {
+    streamSynthesisMock.mockReturnValue(iterableOf([]));
+    renderScoped(["a.pdf"]);
+    fireEvent.click(screen.getByTestId("message-input-synthesize"));
+    await waitFor(() => {
+      expect(streamSynthesisMock).toHaveBeenCalledTimes(1);
+    });
+    expect(streamSynthesisMock.mock.calls[0]![0]).toEqual({
+      documentSources: ["a.pdf"],
+      format: "project_documentation",
+    });
+  });
+
+  it("hides the infographic action when no documents are scoped", () => {
+    renderInput();
+    expect(screen.queryByTestId("message-input-infographic")).toBeNull();
+  });
+
+  it("requests the infographic format from the infographic action", async () => {
+    streamSynthesisMock.mockReturnValue(iterableOf([]));
+    renderScoped(["a.pdf"]);
+    fireEvent.click(screen.getByTestId("message-input-infographic"));
+    await waitFor(() => {
+      expect(streamSynthesisMock).toHaveBeenCalledTimes(1);
+    });
+    expect(streamSynthesisMock.mock.calls[0]![0]).toEqual({
+      documentSources: ["a.pdf"],
+      format: "infographic",
+    });
+    expect(probeMessages()[0].content).toBe(
+      "Synthesize an infographic from: a.pdf",
+    );
   });
 });

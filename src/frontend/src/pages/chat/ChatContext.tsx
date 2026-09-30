@@ -34,6 +34,7 @@ export const ChatActionType = {
   ShowCitation: "show_citation",
   CloseCitation: "close_citation",
   SetConversationId: "set_conversation_id",
+  SetDocumentSources: "set_document_sources",
   LoadConversation: "load_conversation",
   Reset: "reset",
 } as const;
@@ -64,10 +65,15 @@ export type ChatAction =
       conversationId: string;
       messages: ChatMessage[];
     }
+  | {
+      type: typeof ChatActionType.SetDocumentSources;
+      documentSources: string[];
+    }
   | { type: typeof ChatActionType.Reset };
 
 export const initialChatState: ChatState = {
   messages: [],
+  documentSources: [],
   conversationId: null,
   focusedCitationId: null,
   activeCitation: null,
@@ -139,6 +145,8 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       return { ...state, activeCitation: null };
     case ChatActionType.SetConversationId:
       return { ...state, conversationId: action.conversationId };
+    case ChatActionType.SetDocumentSources:
+      return { ...state, documentSources: action.documentSources };
     case ChatActionType.LoadConversation:
       // Replace the transcript wholesale and clear the per-conversation
       // citation UI (focused token + detail column) so a freshly loaded
@@ -149,9 +157,10 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
         ...initialChatState,
         conversationId: action.conversationId,
         messages: action.messages,
+        documentSources: state.documentSources,
       };
     case ChatActionType.Reset:
-      return initialChatState;
+      return { ...initialChatState, documentSources: state.documentSources };
   }
 }
 

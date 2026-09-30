@@ -20,14 +20,26 @@
  * `superscriptReasoningCitations`, so citation markers show as visual
  * superscripts in both surfaces. A stray `^..^` pair in chain-of-thought
  * therefore renders as a `<sup>` (accepted, cosmetic).
+ *
+ * Fenced ```mermaid blocks render as diagrams through `MermaidDiagram`
+ * (the surrounding `<pre>` is dropped for them); every other code block
+ * renders unchanged.
  */
+import { isValidElement } from "react";
 import ReactMarkdown from "react-markdown";
 import type { Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import supersub from "remark-supersub";
+import { MermaidDiagram } from "./MermaidDiagram";
 
 const REMARK_PLUGINS = [remarkGfm];
 const REMARK_PLUGINS_WITH_SUPERSUB = [remarkGfm, supersub];
+
+const MERMAID_LANGUAGE = "language-mermaid";
+
+function isMermaidCode(className: string | undefined): boolean {
+  return className?.split(" ").includes(MERMAID_LANGUAGE) ?? false;
+}
 
 const COMPONENTS: Components = {
   a({ href, children }) {
@@ -36,6 +48,25 @@ const COMPONENTS: Components = {
         {children}
       </a>
     );
+  },
+  pre({ children }) {
+    if (
+      isValidElement<{ className?: string }>(children) &&
+      isMermaidCode(children.props.className)
+    ) {
+      return children;
+    }
+    return <pre>{children}</pre>;
+  },
+  code({ className, children }) {
+    if (isMermaidCode(className)) {
+      return (
+        <MermaidDiagram
+          source={typeof children === "string" ? children : ""}
+        />
+      );
+    }
+    return <code className={className}>{children}</code>;
   },
 };
 

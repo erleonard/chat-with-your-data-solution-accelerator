@@ -41,7 +41,7 @@ from backend.core.settings import AppSettings
 from backend.core.types import SearchDocument, SearchResult
 
 from .registry import registry
-from .base import BaseSearch, SourceListing
+from .base import BaseSearch, SourceListing, order_chunks
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +63,32 @@ logger = logging.getLogger(__name__)
 
 
 _DEFAULT_SELECT_FIELDS = ("id", "content", "title", "url")
+
+# Candidate-pool multiplier for source-scoped searches: the server-side
+# `search.ismatch` title filter is token-based, so an exact client-side
+# check can drop a few hits; over-fetching keeps `top_k` exact hits.
+_SCOPED_OVERFETCH = 3
+
+
+def _escape_phrase(value: str) -> str:
+    """Quote ``value`` as a simple-syntax phrase inside an OData literal."""
+    phrase = value.replace("\\", "\\\\").replace('"', '\\"')
+    return f'"{phrase}"'.replace("'", "''")
+
+
+def build_title_scope_filter(sources: Sequence[str]) -> str:
+    """OData filter narrowing hits to chunks whose ``title`` matches ``sources``.
+
+    ``title`` is searchable but not filterable in the deployed index, so
+    equality filters are rejected; ``search.ismatch`` runs against the
+    searchable field instead. Matching is phrase-based, so callers must
+    still apply an exact client-side check.
+    """
+    clauses = [
+        f"search.ismatch('{_escape_phrase(source)}', 'title', 'simple', 'all')"
+        for source in sources
+    ]
+    return " or ".join(clauses)
 
 
 @registry.register("AzureSearch")
@@ -128,12 +154,15 @@ class AzureSearch(BaseSearch):
         use_semantic_search: bool | None = None,
         vector: Sequence[float] | None = None,
         filter_expression: str | None = None,
+        sources: Sequence[str] | None = None,
     ) -> Sequence[SearchResult]:
         cfg = self._settings.search
         # `top_k if not None` (not `top_k or ...`) so an explicit 0
         # would propagate; today it'd 400 from the SDK, but the call
         # site stays honest.
         effective_top_k = top_k if top_k is not None else cfg.top_k
+        scope = {source for source in sources or () if source}
+        fetch_top_k = effective_top_k * _SCOPED_OVERFETCH if scope else effective_top_k
         # Same None-means-default rule for the semantic flag so an
         # explicit per-call `False` can disable re-ranking even when the
         # settings default is on (and vice versa).
@@ -144,11 +173,20 @@ class AzureSearch(BaseSearch):
         )
         kwargs: dict[str, Any] = {
             "search_text": query,
-            "top": effective_top_k,
+            "top": fetch_top_k,
             "select": list(_DEFAULT_SELECT_FIELDS),
         }
+        filters: list[str] = []
         if filter_expression is not None:
-            kwargs["filter"] = filter_expression
+            filters.append(filter_expression)
+        if scope:
+            filters.append(build_title_scope_filter(sorted(scope)))
+        if filters:
+            kwargs["filter"] = (
+                filters[0]
+                if len(filters) == 1
+                else " and ".join(f"({clause})" for clause in filters)
+            )
         if vector is not None:
             # k_nearest_neighbors mirrors `top` so vector and text
             # retrieval return comparable candidate pools before
@@ -156,7 +194,7 @@ class AzureSearch(BaseSearch):
             kwargs["vector_queries"] = [
                 VectorizedQuery(
                     vector=list(vector),
-                    k_nearest_neighbors=effective_top_k,
+                    k_nearest_neighbors=fetch_top_k,
                     fields="content_vector",
                 )
             ]
@@ -196,7 +234,40 @@ class AzureSearch(BaseSearch):
                 },
             )
             raise
+        if scope:
+            results = [hit for hit in results if hit.title in scope][:effective_top_k]
         return results
+
+    async def list_chunks(self, source: str) -> list[SearchResult]:
+        # Narrow server-side with the searchable-title phrase match, then
+        # keep exact matches only (same rationale as `delete_by_source`:
+        # `title` is not filterable in the deployed index).
+        client = self._get_client()
+        chunks: list[SearchResult] = []
+        try:
+            paged = cast(
+                AsyncIterable[dict[str, Any]],
+                await client.search(  # pyright: ignore[reportUnknownMemberType]
+                    search_text="*",
+                    filter=build_title_scope_filter([source]),
+                    select=list(_DEFAULT_SELECT_FIELDS),
+                ),
+            )
+            async for doc in paged:
+                if doc.get("title") == source:
+                    chunks.append(self._to_result(doc))
+        except AzureError:
+            logger.exception(
+                "azure_search list_chunks failed",
+                extra={
+                    "operation": "list_chunks",
+                    "provider": "azure_search",
+                    "index_name": self._settings.search.index,
+                    "source": source,
+                },
+            )
+            raise
+        return order_chunks(source, chunks)
 
     async def delete_by_source(self, source: str) -> int:
         # `title` is searchable but NOT filterable in the deployed index,

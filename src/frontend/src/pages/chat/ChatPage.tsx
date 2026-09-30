@@ -14,6 +14,7 @@ import { PanelLeft } from "@/components/CoralShell/PanelLeft";
 import { ErrorBoundary } from "@/components/ErrorBoundary/ErrorBoundary";
 import { HistoryPanel } from "./components/HistoryPanel";
 import { MessageList } from "./components/MessageList";
+import { DocumentScopePicker } from "./components/DocumentScopePicker";
 import { MessageInput } from "./components/MessageInput";
 import { CitationDetailPanel } from "./components/CitationDetailPanel/CitationDetailPanel";
 import styles from "./ChatPage.module.css";
@@ -101,6 +102,7 @@ function ChatShell({ historyOpen }: { historyOpen: boolean }) {
         </div>
         <div className={styles.composer}>
           <div className={styles.composerColumn}>
+            <DocumentScopePicker />
             <MessageInput />
           </div>
         </div>

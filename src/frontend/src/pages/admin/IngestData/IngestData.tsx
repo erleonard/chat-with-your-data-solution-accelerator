@@ -48,7 +48,7 @@ import type {
 } from "@/models/admin";
 import styles from "./IngestData.module.css";
 
-export const MAX_UPLOAD_SIZE_BYTES = 50 * 1024 * 1024;
+export const MAX_UPLOAD_SIZE_BYTES = 200 * 1024 * 1024;
 export const ACCEPTED_EXTENSIONS = [".pdf", ".docx", ".txt"] as const;
 export const REPROCESS_CONFIRM_TOKEN = "REPROCESS";
 
@@ -231,7 +231,7 @@ function validateFile(file: File): string | null {
   }
   if (file.size > MAX_UPLOAD_SIZE_BYTES) {
     const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
-    return `File exceeds the 50 MiB limit (${sizeMb} MiB).`;
+    return `File exceeds the ${MAX_UPLOAD_SIZE_BYTES / (1024 * 1024)} MiB limit (${sizeMb} MiB).`;
   }
   return null;
 }
