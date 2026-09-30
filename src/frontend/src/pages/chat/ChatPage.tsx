@@ -82,6 +82,7 @@ function ChatShell({ historyOpen }: { historyOpen: boolean }) {
       className={styles.shell}
       data-history-open={historyOpen ? "true" : "false"}
       data-citation-open={citationOpen ? "true" : "false"}
+      data-empty={state.messages.length === 0 ? "true" : "false"}
     >
       <h2 className={styles.srOnly}>Chat</h2>
       <PanelLeft

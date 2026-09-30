@@ -2,8 +2,8 @@
  * Tests for the Coral <Header> component. Same behavioural contract
  * as the prior <AppHeader> (preserved verbatim accessible names, the
  * `data-testid="app-header"` discriminator, the same callback wiring)
- * but the brand visuals are now reference-architecture-faithful: Microsoft 4-square
- * logo + "<title> | <subtitle>" pattern.
+ * but the brand visuals are the Canadian flag + serif wordmark, with an
+ * optional "| <subtitle>" label.
  */
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
@@ -38,15 +38,13 @@ function renderHeader(props?: Partial<React.ComponentProps<typeof Header>>) {
 }
 
 describe("Header", () => {
-  it("renders the title, the default subtitle, and a clickable multi-agent home logo", () => {
+  it("renders the serif wordmark title and a clickable Canadian-flag home button", () => {
     renderHeader({ title: "Chat with your data" });
     expect(
       screen.getByRole("heading", { level: 1, name: /chat with your data/i }),
     ).toBeInTheDocument();
-    // Default subtitle from the reference-architecture pattern: "<title> | Solution Accelerator".
-    expect(screen.getByText(/solution accelerator/i)).toBeInTheDocument();
-    // The brand logo is now a multi-agent badge wrapped in a button that
-    // returns to the home / chat view.
+    // No default subtitle: the wordmark stands alone.
+    expect(screen.queryByText("|")).not.toBeInTheDocument();
     expect(screen.getByTestId("header-home")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /go to home/i }),
@@ -59,15 +57,10 @@ describe("Header", () => {
     expect(onNavigateHome).toHaveBeenCalledTimes(1);
   });
 
-  it("renders the multi-agent brand mark itself, not an initials fallback", () => {
-    // Fluent's Avatar hides its `icon` slot whenever a `name` yields
-    // initials, so the brand mark must render with no `name` (otherwise
-    // the Avatar shows the "M" of "Multi-agent" instead of the logo).
-    // viewBox "0 0 33 32" is unique to <MultiAgentLogo>.
-    const { container } = renderHeader();
-    expect(
-      container.querySelector('svg[viewBox="0 0 33 32"]'),
-    ).not.toBeNull();
+  it("renders the Canadian flag inside the home button", () => {
+    renderHeader();
+    const home = screen.getByTestId("header-home");
+    expect(home.querySelector('[data-testid="canada-flag"]')).not.toBeNull();
   });
 
   it("renders a custom subtitle when provided", () => {

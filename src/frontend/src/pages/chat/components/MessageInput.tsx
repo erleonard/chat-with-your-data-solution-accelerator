@@ -33,12 +33,12 @@ import {
 } from "react";
 import { Button, ToggleButton } from "@fluentui/react-components";
 import {
+  ArrowRight24Regular,
   Broom24Regular,
   DataPie24Regular,
   DocumentText24Regular,
   Mic24Regular,
   MicOff24Regular,
-  Send24Regular,
   Stop24Regular,
 } from "@fluentui/react-icons";
 import { useChat } from "@/pages/chat/ChatContext";
@@ -339,7 +339,7 @@ export function MessageInput() {
         onChange={(e) => {
           setDraft(e.target.value);
         }}
-        placeholder="Type a message…"
+        placeholder="Try “Summarize the key risks across my documents”"
         autoComplete="off"
         disabled={isStreaming || speech.isListening}
         className={styles.field}
@@ -424,7 +424,7 @@ export function MessageInput() {
           disabled={!canSend}
           aria-label="Send"
           title="Send"
-          icon={<Send24Regular />}
+          icon={<ArrowRight24Regular />}
           className={styles.send}
         />
       )}

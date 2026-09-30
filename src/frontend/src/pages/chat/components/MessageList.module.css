@@ -11,20 +11,25 @@
   justify-content: center;
   gap: var(--spacingVerticalM);
   text-align: center;
-  color: var(--colorNeutralForeground3);
-  padding: var(--spacingVerticalXXXL) var(--spacingHorizontalL);
+  min-height: 100%;
+  padding: var(--spacingVerticalXXXL) var(--spacingHorizontalL) 0;
 }
 
-.emptyIcon {
-  color: var(--colorBrandForeground1);
-  opacity: 0.85;
+.emptyTitle {
+  margin: 0;
+  font-family: var(--cwyd-font-display);
+  font-size: clamp(48px, 8vw, 96px);
+  font-weight: 500;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--colorNeutralForeground1);
 }
 
 .emptyText {
   margin: 0;
   font-size: var(--fontSizeBase500);
-  font-weight: var(--fontWeightSemibold);
-  color: var(--colorNeutralForeground1);
+  line-height: var(--lineHeightBase500);
+  color: var(--cwyd-muted-foreground);
 }
 
 .list {
