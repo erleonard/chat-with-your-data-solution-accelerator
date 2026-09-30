@@ -10,9 +10,10 @@
  *      `append_citation` / `set_error` actions on `ChatContext`.
  *   4. Dispatches `finish_stream` once the iterator completes.
  *
- * When documents are scoped, a Synthesize button runs the same turn
- * flow over `streamSynthesis` (whole-document project documentation),
- * sending any typed text as the synthesis focus.
+ * When documents are scoped, Synthesize and Infographic buttons run the
+ * same turn flow over `streamSynthesis` (whole-document project
+ * documentation or a Mermaid infographic), sending any typed text as
+ * the synthesis focus.
  *
  * Citation frames are narrowed via the local `parseCitation` helper
  * before dispatch so a malformed wire payload (missing `id`) is
@@ -33,6 +34,7 @@ import {
 import { Button, ToggleButton } from "@fluentui/react-components";
 import {
   Broom24Regular,
+  DataPie24Regular,
   DocumentText24Regular,
   Mic24Regular,
   MicOff24Regular,
@@ -40,7 +42,11 @@ import {
   Stop24Regular,
 } from "@fluentui/react-icons";
 import { useChat } from "@/pages/chat/ChatContext";
-import { streamChat, streamSynthesis } from "@/api/streamChat";
+import {
+  SynthesisFormat,
+  streamChat,
+  streamSynthesis,
+} from "@/api/streamChat";
 import type {
   ChatMessage,
   Citation,
@@ -90,6 +96,11 @@ function parseCitation(metadata: Record<string, unknown>): Citation | null {
     metadata: inner,
   };
 }
+
+const SYNTHESIS_LABELS: Record<SynthesisFormat, string> = {
+  [SynthesisFormat.ProjectDocumentation]: "project documentation",
+  [SynthesisFormat.Infographic]: "an infographic",
+};
 
 export function MessageInput() {
   const { state, dispatch } = useChat();
@@ -167,21 +178,21 @@ export function MessageInput() {
 
   /**
    * Read every section of the scoped documents and stream a grounded
-   * project document into a new assistant turn. Any text in the input
-   * is sent as the synthesis focus.
+   * artifact (project documentation or a Mermaid infographic) into a
+   * new assistant turn. Any text in the input is sent as the focus.
    */
-  async function handleSynthesize() {
+  async function handleSynthesize(format: SynthesisFormat) {
     if (!canSynthesize) return;
     const sources = [...state.documentSources];
     const focus = trimmed;
     const label =
-      `Synthesize project documentation from: ${sources.join(", ")}` +
+      `Synthesize ${SYNTHESIS_LABELS[format]} from: ${sources.join(", ")}` +
       (focus.length > 0 ? `\n\nFocus: ${focus}` : "");
     await runTurn(label, (signal) =>
       streamSynthesis(
         focus.length > 0
-          ? { documentSources: sources, instructions: focus }
-          : { documentSources: sources },
+          ? { documentSources: sources, format, instructions: focus }
+          : { documentSources: sources, format },
         {
           conversationId: state.conversationId,
           signal,
@@ -346,20 +357,36 @@ export function MessageInput() {
         className={styles.mic}
       />
       {state.documentSources.length > 0 ? (
-        <Button
-          appearance="subtle"
-          shape="circular"
-          type="button"
-          onClick={() => {
-            void handleSynthesize();
-          }}
-          disabled={!canSynthesize}
-          aria-label="Synthesize project documentation"
-          title="Synthesize project documentation from the selected documents (text in the box is used as the focus)"
-          data-testid="message-input-synthesize"
-          icon={<DocumentText24Regular />}
-          className={styles.mic}
-        />
+        <>
+          <Button
+            appearance="subtle"
+            shape="circular"
+            type="button"
+            onClick={() => {
+              void handleSynthesize(SynthesisFormat.ProjectDocumentation);
+            }}
+            disabled={!canSynthesize}
+            aria-label="Synthesize project documentation"
+            title="Synthesize project documentation from the selected documents (text in the box is used as the focus)"
+            data-testid="message-input-synthesize"
+            icon={<DocumentText24Regular />}
+            className={styles.mic}
+          />
+          <Button
+            appearance="subtle"
+            shape="circular"
+            type="button"
+            onClick={() => {
+              void handleSynthesize(SynthesisFormat.Infographic);
+            }}
+            disabled={!canSynthesize}
+            aria-label="Create infographic"
+            title="Create an infographic (diagrams, timeline, key figures) from the selected documents (text in the box is used as the focus)"
+            data-testid="message-input-infographic"
+            icon={<DataPie24Regular />}
+            className={styles.mic}
+          />
+        </>
       ) : null}
       <ToggleButton
         appearance="subtle"

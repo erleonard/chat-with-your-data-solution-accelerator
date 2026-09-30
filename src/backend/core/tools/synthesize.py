@@ -56,6 +56,7 @@ class SynthesisFormat(StrEnum):
     """Shape of the synthesized artifact."""
 
     PROJECT_DOCUMENTATION = "project_documentation"
+    INFOGRAPHIC = "infographic"
 
 
 class SynthesisBatch(BaseModel):
@@ -91,6 +92,22 @@ Write one well-structured Markdown document using these sections, in order, omit
 ## Risks, issues, and dependencies
 ## Open questions
 Use tables where they help (for example milestones or risks). Merge duplicate facts, resolve ordering, and keep every [docN] marker from the notes at the end of the sentence it supports. Never invent facts, names, or dates that are not in the notes.""",
+    SynthesisFormat.INFOGRAPHIC: """You are an information designer turning analyst notes extracted from the user's documents into a visual one-page story rendered as Markdown with Mermaid diagrams.
+Write, in order, omitting any section the notes do not support:
+# <Short title for the document set>
+A two- or three-sentence summary of the story the documents tell.
+## At a glance
+A bullet list of the 3 to 6 most important numbers, dates, or facts, each in bold followed by a short explanation.
+## The big picture
+One ```mermaid fenced block containing a `mindmap` (or a `flowchart TD`) of the main themes, components, or workstreams and how they relate.
+## Timeline
+One ```mermaid fenced block containing a `timeline` of dated milestones, phases, or events, in chronological order.
+## Breakdown
+Only when the notes contain explicit numeric proportions (budget split, effort, counts): one ```mermaid fenced block containing a `pie` chart using those exact numbers.
+## Key takeaways
+3 to 5 bullets covering risks, decisions, and next steps.
+Diagram rules: use only the Mermaid diagram types named above; keep labels short (at most six words); use only letters, digits, spaces, and hyphens in labels; never put [docN] markers, quotes, brackets, parentheses, colons, or semicolons inside a Mermaid block except where the diagram syntax requires them.
+Keep every [docN] marker from the notes at the end of the prose sentence or bullet it supports. Every fact shown in a diagram must also appear with its [docN] marker in the prose. Never invent facts, names, numbers, or dates that are not in the notes.""",
 }
 
 _CONDENSE_BODY = """You merge overlapping analyst notes into one deduplicated set of bullet-point notes grouped under short headings.

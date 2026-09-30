@@ -9,7 +9,10 @@ import { streamChat, streamSynthesis } from "@/api/streamChat";
 import type { StreamEvent } from "@/models/chat";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 
-vi.mock("@/api/streamChat", () => ({
+vi.mock("@/api/streamChat", async () => ({
+  ...(await vi.importActual<typeof import("@/api/streamChat")>(
+    "@/api/streamChat",
+  )),
   streamChat: vi.fn(),
   streamSynthesis: vi.fn(),
 }));
@@ -910,6 +913,7 @@ describe("MessageInput synthesize button", () => {
     });
     expect(streamSynthesisMock.mock.calls[0]![0]).toEqual({
       documentSources: ["a.pdf", "b.docx"],
+      format: "project_documentation",
       instructions: "for executives",
     });
     expect(streamChatMock).not.toHaveBeenCalled();
@@ -934,6 +938,28 @@ describe("MessageInput synthesize button", () => {
     });
     expect(streamSynthesisMock.mock.calls[0]![0]).toEqual({
       documentSources: ["a.pdf"],
+      format: "project_documentation",
     });
+  });
+
+  it("hides the infographic action when no documents are scoped", () => {
+    renderInput();
+    expect(screen.queryByTestId("message-input-infographic")).toBeNull();
+  });
+
+  it("requests the infographic format from the infographic action", async () => {
+    streamSynthesisMock.mockReturnValue(iterableOf([]));
+    renderScoped(["a.pdf"]);
+    fireEvent.click(screen.getByTestId("message-input-infographic"));
+    await waitFor(() => {
+      expect(streamSynthesisMock).toHaveBeenCalledTimes(1);
+    });
+    expect(streamSynthesisMock.mock.calls[0]![0]).toEqual({
+      documentSources: ["a.pdf"],
+      format: "infographic",
+    });
+    expect(probeMessages()[0].content).toBe(
+      "Synthesize an infographic from: a.pdf",
+    );
   });
 });

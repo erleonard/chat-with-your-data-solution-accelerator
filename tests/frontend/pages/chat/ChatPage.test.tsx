@@ -13,7 +13,10 @@ import type {
 // Stub the module so the integration assertions stay focused on the
 // shell wiring rather than the SSE wire format (covered in the unit
 // tests for `streamChat` + `MessageInput`).
-vi.mock("@/api/streamChat", () => ({
+vi.mock("@/api/streamChat", async () => ({
+  ...(await vi.importActual<typeof import("@/api/streamChat")>(
+    "@/api/streamChat",
+  )),
   streamChat: vi.fn(),
 }));
 const streamChatMock = vi.mocked(streamChat);

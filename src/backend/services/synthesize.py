@@ -9,6 +9,7 @@ from backend.models.synthesize import SynthesisRequest
 
 _FORMAT_LABELS: dict[SynthesisFormat, str] = {
     SynthesisFormat.PROJECT_DOCUMENTATION: "project documentation",
+    SynthesisFormat.INFOGRAPHIC: "an infographic",
 }
 
 

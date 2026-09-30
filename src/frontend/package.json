@@ -12,6 +12,7 @@
   "dependencies": {
     "@fluentui/react-components": "^9.73.8",
     "@fluentui/react-icons": "^2.0.326",
+    "mermaid": "^11.17.2",
     "microsoft-cognitiveservices-speech-sdk": "^1.51.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",

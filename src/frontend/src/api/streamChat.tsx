@@ -202,6 +202,7 @@ export async function* streamChat(
 /** Artifact shapes accepted by `POST /api/synthesize`. */
 export const SynthesisFormat = {
   ProjectDocumentation: "project_documentation",
+  Infographic: "infographic",
 } as const;
 export type SynthesisFormat =
   (typeof SynthesisFormat)[keyof typeof SynthesisFormat];

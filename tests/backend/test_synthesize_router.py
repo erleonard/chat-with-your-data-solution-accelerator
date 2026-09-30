@@ -153,3 +153,10 @@ def test_synthesis_question_includes_sources_and_focus() -> None:
         SynthesisRequest(document_sources=["a.pdf", "b.docx"], instructions=" execs ")
     )
     assert q == "Synthesize project documentation from: a.pdf, b.docx\n\nFocus: execs"
+
+
+def test_synthesis_question_labels_infographic() -> None:
+    q = synthesis_question(
+        SynthesisRequest(document_sources=["a.pdf"], format="infographic")  # type: ignore[arg-type]
+    )
+    assert q == "Synthesize an infographic from: a.pdf"

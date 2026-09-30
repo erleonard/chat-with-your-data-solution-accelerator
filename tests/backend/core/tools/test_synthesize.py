@@ -120,3 +120,18 @@ async def test_run_condenses_notes_that_exceed_budget() -> None:
     reasoning = [e.content for e in events if e.channel == OrchestratorChannel.REASONING]
     assert any(r.startswith("Consolidating") for r in reasoning)
     assert events[-1].channel == OrchestratorChannel.ANSWER
+
+
+async def test_run_infographic_uses_mermaid_reduce_prompt() -> None:
+    search = _FakeSearch({"a.pdf": [_chunk("a.pdf", 0, "Kickoff in May.")]})
+    llm = _FakeLLM()
+    synth = DocumentSynthesizer(llm=llm, search=search, max_tokens=4000, batch_chars=1000)  # type: ignore[arg-type]
+
+    events = await _drain(synth, ["a.pdf"], synthesis_format=SynthesisFormat.INFOGRAPHIC)
+
+    reduce_system = llm.calls[-1][0][0].content
+    assert "Fixed safety and grounding rules" in reduce_system
+    assert "```mermaid" in reduce_system
+    assert "never put [docN] markers" in reduce_system
+    assert "Executive summary" not in reduce_system
+    assert events[-1].channel == OrchestratorChannel.ANSWER
