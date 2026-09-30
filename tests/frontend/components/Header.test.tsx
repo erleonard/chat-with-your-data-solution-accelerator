@@ -2,7 +2,7 @@
  * Tests for the Coral <Header> component. Same behavioural contract
  * as the prior <AppHeader> (preserved verbatim accessible names, the
  * `data-testid="app-header"` discriminator, the same callback wiring)
- * but the brand visuals are the Canadian flag + serif wordmark, with an
+ * but the brand visuals are the Government of Canada signature + serif wordmark, with an
  * optional "| <subtitle>" label.
  */
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -38,7 +38,7 @@ function renderHeader(props?: Partial<React.ComponentProps<typeof Header>>) {
 }
 
 describe("Header", () => {
-  it("renders the serif wordmark title and a clickable Canadian-flag home button", () => {
+  it("renders the serif wordmark title and a clickable GC-signature home button", () => {
     renderHeader({ title: "Chat with your data" });
     expect(
       screen.getByRole("heading", { level: 1, name: /chat with your data/i }),
@@ -57,10 +57,10 @@ describe("Header", () => {
     expect(onNavigateHome).toHaveBeenCalledTimes(1);
   });
 
-  it("renders the Canadian flag inside the home button", () => {
+  it("renders the Government of Canada signature inside the home button", () => {
     renderHeader();
     const home = screen.getByTestId("header-home");
-    expect(home.querySelector('[data-testid="canada-flag"]')).not.toBeNull();
+    expect(home.querySelector('[data-testid="gc-signature"]')).not.toBeNull();
   });
 
   it("renders a custom subtitle when provided", () => {
