@@ -403,6 +403,29 @@ describe("streamChat", () => {
     });
   });
 
+  it("sends document_sources only when a scope is selected", async () => {
+    fetchMock.mockResolvedValueOnce(sseResponse([]));
+    fetchMock.mockResolvedValueOnce(sseResponse([]));
+    await collect(
+      streamChat([{ role: "user", content: "hi" }], {
+        documentSources: ["a.pdf", "b.docx"],
+      }),
+    );
+    await collect(
+      streamChat([{ role: "user", content: "hi" }], { documentSources: [] }),
+    );
+    const scoped = fetchMock.mock.calls[0] as [string, RequestInit];
+    const unscoped = fetchMock.mock.calls[1] as [string, RequestInit];
+    expect(JSON.parse(scoped[1].body as string)).toEqual({
+      messages: [{ role: "user", content: "hi" }],
+      document_sources: ["a.pdf", "b.docx"],
+    });
+    expect(
+      "document_sources" in
+        (JSON.parse(unscoped[1].body as string) as Record<string, unknown>),
+    ).toBe(false);
+  });
+
   it("omits conversation_id from the body when conversationId is null", async () => {
     fetchMock.mockResolvedValueOnce(sseResponse([]));
     await collect(

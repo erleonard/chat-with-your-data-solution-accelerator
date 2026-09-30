@@ -56,10 +56,10 @@ function makeFile(
 }
 
 function makeOversizeFile(name = "big.pdf"): File {
-  // Skip allocating 50 MiB of buffer -- Object.defineProperty lets
+  // Skip allocating 200+ MiB of buffer -- Object.defineProperty lets
   // the validator see the size without paying the memory cost.
   const file = new File(["tiny"], name, { type: "application/pdf" });
-  Object.defineProperty(file, "size", { value: 60 * 1024 * 1024 });
+  Object.defineProperty(file, "size", { value: 250 * 1024 * 1024 });
   return file;
 }
 
@@ -104,7 +104,7 @@ describe("IngestData -- file upload", () => {
     });
   });
 
-  it("rejects a file over 50 MiB client-side without firing the wire call", async () => {
+  it("rejects a file over 200 MiB client-side without firing the wire call", async () => {
     render(<IngestData />);
 
     const input = screen.getByTestId("upload-input") as HTMLInputElement;
@@ -114,7 +114,7 @@ describe("IngestData -- file upload", () => {
       expect(screen.getByTestId("upload-list")).toBeInTheDocument();
     });
     expect(uploadMock).not.toHaveBeenCalled();
-    const errors = screen.getAllByText(/50 MiB limit/i);
+    const errors = screen.getAllByText(/200 MiB limit/i);
     expect(errors.length).toBeGreaterThan(0);
   });
 

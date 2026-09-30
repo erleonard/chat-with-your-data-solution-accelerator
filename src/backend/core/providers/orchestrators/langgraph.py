@@ -85,6 +85,7 @@ class LangGraphOrchestrator(OrchestratorBase):
         search_use_semantic_search: bool | None = None,
         openai_temperature: float | None = None,
         openai_max_tokens: int | None = None,
+        search_sources: Sequence[str] | None = None,
         **_extras: object,
     ) -> None:
         # `**_extras` swallows kwargs the router passes uniformly to every
@@ -107,6 +108,7 @@ class LangGraphOrchestrator(OrchestratorBase):
         self._search_use_semantic_search = search_use_semantic_search
         self._openai_temperature = openai_temperature
         self._openai_max_tokens = openai_max_tokens
+        self._search_sources = list(search_sources or [])
         self._graph = self._build_graph()
 
     # Graph construction
@@ -178,6 +180,7 @@ class LangGraphOrchestrator(OrchestratorBase):
                     top_k=self._search_top_k,
                     use_semantic_search=self._search_use_semantic_search,
                     vector=query_vector,
+                    sources=self._search_sources or None,
                 )
                 if sources:
                     citations = build_citations(sources)

@@ -179,6 +179,7 @@ export function MessageInput() {
         // on the terminal `conversation` control frame, surfaced via
         // `onConversationId` below.
         conversationId: state.conversationId,
+        documentSources: state.documentSources,
         signal: controller.signal,
         // Record the backend-resolved id so the next turn appends to
         // the same conversation instead of starting another.

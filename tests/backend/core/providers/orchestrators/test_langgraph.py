@@ -346,7 +346,12 @@ async def test_run_forwards_search_knobs_to_search_provider() -> None:
     _ = [e async for e in orch.run([ChatMessage(role="user", content="q?")])]
 
     assert fake_search.kwargs_calls == [
-        {"top_k": 7, "use_semantic_search": True, "vector": _FAKE_QUERY_VECTOR}
+        {
+            "top_k": 7,
+            "use_semantic_search": True,
+            "vector": _FAKE_QUERY_VECTOR,
+            "sources": None,
+        }
     ]
 
 
@@ -364,7 +369,12 @@ async def test_run_defaults_search_knobs_to_none_when_unset() -> None:
     _ = [e async for e in orch.run([ChatMessage(role="user", content="q?")])]
 
     assert fake_search.kwargs_calls == [
-        {"top_k": None, "use_semantic_search": None, "vector": _FAKE_QUERY_VECTOR}
+        {
+            "top_k": None,
+            "use_semantic_search": None,
+            "vector": _FAKE_QUERY_VECTOR,
+            "sources": None,
+        }
     ]
 
 
@@ -540,3 +550,22 @@ async def test_run_filters_citations_against_assembled_answer() -> None:
     assert channels == ["citation", "answer"]
     assert events[0].metadata["id"] == "[doc1]"
     assert events[-1].content == "See [doc1] for details."
+
+
+@pytest.mark.asyncio
+async def test_run_forwards_document_scope_to_search_provider() -> None:
+    """A per-request `search_sources` scope reaches `BaseSearch.search`."""
+    settings = MagicMock(spec=AppSettings)
+    fake_search = _FakeSearch(
+        [{"id": "x", "content": "alpha", "title": "a.pdf", "url": "http://a"}]
+    )
+    orch = LangGraphOrchestrator(
+        settings=settings,
+        llm=_FakeLLM(reply="ok"),
+        search=fake_search,
+        search_sources=["a.pdf", "b.docx"],
+    )
+
+    _ = [e async for e in orch.run([ChatMessage(role="user", content="q?")])]
+
+    assert fake_search.kwargs_calls[0]["sources"] == ["a.pdf", "b.docx"]

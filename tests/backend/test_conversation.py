@@ -661,6 +661,37 @@ async def test_router_saved_search_knob_overrides_win(
     assert _FakeOrchestrator.last_kwargs.get("search_use_semantic_search") is False
 
 
+async def test_router_forwards_document_sources_to_orchestrator(
+    app_with_fakes,
+) -> None:
+    """`document_sources` on the request becomes the uniform
+    `search_sources` ctor kwarg; omitting it forwards None."""
+    _FakeOrchestrator.scripted = [OrchestratorEvent(channel="answer", content="ok")]
+
+    async with _client(app_with_fakes) as client:
+        _FakeOrchestrator.last_kwargs = {}
+        resp = await client.post(
+            "/api/conversation",
+            json={
+                "messages": [{"role": "user", "content": "ping"}],
+                "document_sources": ["a.pdf", "b.docx"],
+            },
+        )
+        assert resp.status_code == 200
+        assert _FakeOrchestrator.last_kwargs.get("search_sources") == [
+            "a.pdf",
+            "b.docx",
+        ]
+
+        _FakeOrchestrator.last_kwargs = {}
+        resp = await client.post(
+            "/api/conversation",
+            json={"messages": [{"role": "user", "content": "ping"}]},
+        )
+        assert resp.status_code == 200
+        assert _FakeOrchestrator.last_kwargs.get("search_sources") is None
+
+
 async def test_router_dispatches_both_orchestrator_kinds_with_same_kwargs(
     app_with_fakes,
     monkeypatch: pytest.MonkeyPatch,

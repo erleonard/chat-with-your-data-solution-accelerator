@@ -112,6 +112,7 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
         openai_temperature: float | None = None,
         openai_max_tokens: int | None = None,
         credential: AsyncTokenCredential | None = None,
+        search_sources: Sequence[str] | None = None,
         **_extras: object,
     ) -> None:
         # `**_extras` swallows kwargs the router passes uniformly to every
@@ -144,6 +145,11 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
         # the `langgraph` orchestrator.
         self._search_top_k = search_top_k
         self._search_use_semantic_search = search_use_semantic_search
+        # A per-request document scope forces app-side grounding: the
+        # Foundry IQ KB retrieval tool cannot be restricted to a subset of
+        # sources, so a scoped request retrieves through
+        # `BaseSearch.search(sources=...)` instead.
+        self._search_sources = list(search_sources or [])
         # The CWYD orchestrator always drives the `cwyd` agent; the
         # provider's `build_agent` resolves / creates it and applies any
         # admin instruction override via `_resolve_definition`.
@@ -196,8 +202,10 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
         # no credential is wired the tool falls back to the project search
         # connection (`project_connection_id`). The dict form (`.as_dict()`)
         # is the wire shape the runtime agent forwards to the Responses API.
-        authorization = await self._kb_authorization()
-        kb_tool = self._build_kb_tool(authorization)
+        kb_tool: MCPTool | None = None
+        if not self._search_sources:
+            authorization = await self._kb_authorization()
+            kb_tool = self._build_kb_tool(authorization)
         extra_tools: list[ToolTypes] | None = (
             [kb_tool.as_dict()] if kb_tool is not None else None
         )
@@ -228,6 +236,7 @@ class AgentFrameworkOrchestrator(OrchestratorBase):
                     top_k=self._search_top_k,
                     use_semantic_search=self._search_use_semantic_search,
                     vector=query_vector,
+                    sources=self._search_sources or None,
                 )
                 if sources:
                     retrieved_citations = build_citations(sources)

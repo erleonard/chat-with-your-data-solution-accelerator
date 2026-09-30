@@ -133,6 +133,8 @@ async def conversation(
     #   * `search_top_k` / `search_use_semantic_search` -- per-request
     #     retrieval knobs `langgraph` forwards to `BaseSearch.search`
     #     and `agent_framework` swallows.
+    #   * `search_sources` -- optional per-request document scope both
+    #     orchestrators forward to `BaseSearch.search(sources=...)`.
     #   * `openai_temperature` / `openai_max_tokens` -- per-request
     #     sampling knobs both orchestrators forward to the model
     #     (`langgraph` via `complete()`, `agent_framework` via
@@ -150,6 +152,7 @@ async def conversation(
         search_use_semantic_search=effective.search_use_semantic_search,
         openai_temperature=effective.openai_temperature,
         openai_max_tokens=effective.openai_max_tokens,
+        search_sources=body.document_sources,
     )
 
     # Retrieval narration is gated on a wired search backend: when

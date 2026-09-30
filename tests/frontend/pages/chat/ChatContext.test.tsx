@@ -40,6 +40,7 @@ describe("chatReducer", () => {
   it("clears messages on 'reset'", () => {
     const populated: ChatState = {
       messages: [userMsg, botMsg],
+      documentSources: [],
       conversationId: "conv-1",
       focusedCitationId: null,
       activeCitation: null,
@@ -604,6 +605,7 @@ describe("chatReducer conversation tracking", () => {
   it("'load_conversation' clears citation UI from the prior conversation", () => {
     const prior: ChatState = {
       messages: [botMsg],
+      documentSources: [],
       conversationId: "conv-1",
       focusedCitationId: "doc-1",
       activeCitation: {
@@ -631,5 +633,25 @@ describe("chatReducer conversation tracking", () => {
     });
     const cleared = chatReducer(set, { type: ChatActionType.Reset });
     expect(cleared.conversationId).toBeNull();
+  });
+});
+
+describe("chatReducer document scope", () => {
+  it("sets documentSources and keeps them across reset and history load", () => {
+    const scoped = chatReducer(initialChatState, {
+      type: "set_document_sources",
+      documentSources: ["a.pdf"],
+    });
+    expect(scoped.documentSources).toEqual(["a.pdf"]);
+    expect(chatReducer(scoped, { type: "reset" }).documentSources).toEqual([
+      "a.pdf",
+    ]);
+    expect(
+      chatReducer(scoped, {
+        type: "load_conversation",
+        conversationId: "c1",
+        messages: [],
+      }).documentSources,
+    ).toEqual(["a.pdf"]);
   });
 });

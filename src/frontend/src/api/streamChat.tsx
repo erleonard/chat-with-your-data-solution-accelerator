@@ -74,6 +74,12 @@ export interface StreamChatOptions {
    */
   conversationId?: string | null;
   /**
+   * Optional document scope. Sent as `document_sources` when non-empty
+   * so retrieval is restricted to those indexed sources; empty /
+   * omitted searches every indexed document.
+   */
+  documentSources?: readonly string[];
+  /**
    * Number of additional attempts after the first one when a retryable
    * failure surfaces before any event is yielded. `maxRetries: 0`
    * disables retry. Default 2 → up to 3 total attempts.
@@ -186,6 +192,7 @@ export async function* streamChat(
   const baseDelayMs = options.baseDelayMs ?? DEFAULT_BASE_DELAY_MS;
   const signal = options.signal;
   const conversationId = options.conversationId ?? null;
+  const documentSources = options.documentSources ?? [];
   const onConversationId = options.onConversationId;
 
   throwIfAborted(signal);
@@ -196,6 +203,7 @@ export async function* streamChat(
       for await (const ev of streamChatOnce({
         messages,
         conversationId,
+        documentSources,
         signal,
         onConversationId,
       })) {
@@ -221,6 +229,7 @@ export async function* streamChat(
 interface StreamChatOnceParams {
   messages: StreamMessage[];
   conversationId: string | null;
+  documentSources: readonly string[];
   signal: AbortSignal | undefined;
   onConversationId: ((conversationId: string) => void) | undefined;
 }
@@ -228,11 +237,17 @@ interface StreamChatOnceParams {
 async function* streamChatOnce(
   params: StreamChatOnceParams,
 ): AsyncIterable<StreamEvent> {
-  const { messages, conversationId, signal, onConversationId } = params;
-  const payload =
-    conversationId !== null
-      ? { messages, conversation_id: conversationId }
-      : { messages };
+  const { messages, conversationId, documentSources, signal, onConversationId } =
+    params;
+  const payload: {
+    messages: StreamMessage[];
+    conversation_id?: string;
+    document_sources?: string[];
+  } = { messages };
+  if (conversationId !== null) payload.conversation_id = conversationId;
+  if (documentSources.length > 0) {
+    payload.document_sources = [...documentSources];
+  }
   let response: Response;
   try {
     response = await fetch(conversationUrl(), {
