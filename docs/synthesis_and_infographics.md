@@ -60,6 +60,7 @@ This deploys the model and sets `AZURE_OPENAI_IMAGE_DEPLOYMENT` on the backend. 
 
 ## Related documentation
 
+* [Demo runbook: from 100+ page documents to project documentation](demo_runbook_project_documentation.md)
 * [Supported file types](supported_file_types.md)
 * [Document ingestion](document_ingestion.md)
 * [Customizing azd parameters](customizing_azd_parameters.md)
