@@ -1,5 +1,5 @@
 /* Header CSS Module: borderless bar on the warm page background with
-   the flag + serif wordmark on the left and a navy pill of tools on the
+   the Government of Canada signature + serif wordmark on the left and a navy pill of tools on the
    right. Colors come from Fluent v9 tokens and the --cwyd-* brand
    palette in theme/tokens.css, so light/dark theme flips for free. */
 
@@ -31,9 +31,9 @@
   border-radius: 2px;
 }
 
-.flag {
+.signature {
   display: block;
-  box-shadow: 0 0 0 1px rgb(0 0 0 / 8%);
+  color: var(--colorNeutralForeground1);
 }
 
 .brandButton:focus-visible {
@@ -46,6 +46,8 @@
   align-items: baseline;
   gap: 8px;
   min-width: 0;
+  padding-left: 16px;
+  border-left: 1px solid var(--colorNeutralStroke1);
 }
 
 .title {

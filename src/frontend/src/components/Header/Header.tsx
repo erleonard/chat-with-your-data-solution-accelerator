@@ -1,8 +1,8 @@
 /**
  * App header:
- *   - Left brand: a clickable home button holding the Canadian flag and
- *     the serif wordmark (the page title), optionally followed by a
- *     "| <subtitle>" label.
+ *   - Left brand: a clickable home button holding the Government of
+ *     Canada signature, then the serif app wordmark (the page title),
+ *     optionally followed by a "| <subtitle>" label.
  *   - Right tools: <HeaderTools> -- Fluent <Toolbar> rendered as a navy
  *     pill with new-chat, a gated admin entry, history toggle, theme
  *     toggle. The admin pages are reached solely through that gated
@@ -14,7 +14,7 @@ import { type JSX } from "react";
 import type { UserInfo } from "@/models/auth";
 import type { Section } from "@/models/sections";
 import { HeaderTools } from "./HeaderTools";
-import { CanadaFlag } from "./CanadaFlag";
+import { GcSignature } from "./GcSignature";
 import styles from "./Header.module.css";
 
 export type AppView = Section;
@@ -55,7 +55,7 @@ export function Header({
           title="Home"
           data-testid="header-home"
         >
-          <CanadaFlag height={18} className={styles.flag ?? ""} />
+          <GcSignature height={26} className={styles.signature ?? ""} />
         </button>
         <div className={styles.titleStack}>
           <h1 className={styles.title}>{title}</h1>
