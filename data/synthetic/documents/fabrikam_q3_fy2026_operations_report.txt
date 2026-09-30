@@ -1,0 +1,31 @@
+FABRIKAM AERIAL LOGISTICS
+QUARTERLY OPERATIONS REPORT - Q3 FY2026 (July 1 - September 30, 2026)
+Prepared by: Operations Analytics (lead: Jun Nakamura)
+
+SUMMARY
+Total deliveries completed: 184,300 (up 22% quarter over quarter)
+Medical deliveries (Heron H1): 31,750
+On-time delivery rate: 96.4% (target: 95.0%)
+Average delivery time: 17.8 minutes
+Active fleet size at quarter end: 1,120 drones
+Revenue: $48.6 million (Q2 FY2026: $41.3 million)
+
+SAFETY
+Reportable incidents: 3 (none resulting in injury)
+Parachute recovery activations: 11
+Weather-related groundings: 42 hours total, primarily in Halifax during Hurricane season.
+
+REGIONAL BREAKDOWN (deliveries)
+Washington:   71,200
+Colorado:     54,900
+Oregon:       38,600
+Nova Scotia:  19,600
+
+NOTABLE EVENTS
+- Signed a 3-year contract with Cascade Regional Health for blood transport across 14 hospitals.
+- Kestrel K2 end-of-sale was completed on schedule; remaining customer fleets are migrating to Kestrel K3.
+- Opened a new maintenance hub in Aurora, Colorado on August 12, 2026.
+
+OUTLOOK FOR Q4 FY2026
+Target: 205,000 deliveries and an on-time rate of at least 96.0%.
+Planned pilot of Albatross A1 heavy-lift routes between Denver and Colorado Springs.

@@ -1,0 +1,29 @@
+{
+  "company": "Fabrikam Aerial Logistics",
+  "offices": [
+    {
+      "city": "Tacoma",
+      "region": "Washington, USA",
+      "role": "Headquarters",
+      "site_lead": "Priya Ramanathan",
+      "employees": 310,
+      "opened": 2019
+    },
+    {
+      "city": "Denver",
+      "region": "Colorado, USA",
+      "role": "Engineering and flight operations",
+      "site_lead": "Luis Echeverria",
+      "employees": 245,
+      "opened": 2021
+    },
+    {
+      "city": "Halifax",
+      "region": "Nova Scotia, Canada",
+      "role": "Canadian operations",
+      "site_lead": "Siobhan MacNeil",
+      "employees": 85,
+      "opened": 2023
+    }
+  ]
+}
